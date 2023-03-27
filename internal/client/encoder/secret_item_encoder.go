@@ -10,7 +10,7 @@ import (
 	"github.com/apolsh/yapr-gophkeeper/internal/client/controller"
 )
 
-// AESGMCEncoder implementation of Encoder with AES with Galois/Counter Mode (AES-GCM)
+// AESGMCEncoder implementation of Encoder with AES with Galois/Counter Mode (AES-GCM).
 type AESGMCEncoder struct {
 	ready   bool
 	encoder cipher.AEAD
@@ -18,15 +18,15 @@ type AESGMCEncoder struct {
 }
 
 var (
-	// ErrFailedToDecode appears when failed to decode encoded data
+	// ErrFailedToDecode appears when failed to decode encoded data.
 	ErrFailedToDecode = errors.New("failed to decode encoded data")
-	// ErrEncoderIsNotInitialized appears when encoder is not initialized, run SetSecretKey first
+	// ErrEncoderIsNotInitialized appears when encoder is not initialized, run SetSecretKey first.
 	ErrEncoderIsNotInitialized = errors.New("encoder is not initialized, run SetSecretKey first")
 )
 
 var _ controller.Encoder = (*AESGMCEncoder)(nil)
 
-// Encode encodes byte
+// Encode encodes byte.
 func (s *AESGMCEncoder) Encode(byteToEncode []byte) ([]byte, error) {
 	if !s.ready {
 		return nil, ErrEncoderIsNotInitialized
@@ -35,7 +35,7 @@ func (s *AESGMCEncoder) Encode(byteToEncode []byte) ([]byte, error) {
 	return encoded, nil
 }
 
-// Decode decodes bytes
+// Decode decodes bytes.
 func (s *AESGMCEncoder) Decode(byteToDecode []byte) ([]byte, error) {
 	if !s.ready {
 		return nil, ErrEncoderIsNotInitialized
@@ -48,7 +48,7 @@ func (s *AESGMCEncoder) Decode(byteToDecode []byte) ([]byte, error) {
 	return decoded, nil
 }
 
-// SetSecretKey sets secret key for encoder
+// SetSecretKey sets secret key for encoder.
 func (s *AESGMCEncoder) SetSecretKey(secretKey string) error {
 	hashedKey := sha256.Sum256([]byte(secretKey))
 

@@ -26,6 +26,7 @@ type GophkeeperClient interface {
 	Login(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*AuthMeta, error)
 	Register(ctx context.Context, in *Credentials, opts ...grpc.CallOption) (*AuthMeta, error)
 	GetSecretSyncMeta(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetSecretsSyncDataResponse, error)
+	GetSecretSyncMetaByName(ctx context.Context, in *Name, opts ...grpc.CallOption) (*SecretSyncData, error)
 	GetSecret(ctx context.Context, in *SecretID, opts ...grpc.CallOption) (*EncodedSecret, error)
 	SaveEncodedSecret(ctx context.Context, in *EncodedSecret, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeleteSecret(ctx context.Context, in *SecretID, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -61,6 +62,15 @@ func (c *gophkeeperClient) Register(ctx context.Context, in *Credentials, opts .
 func (c *gophkeeperClient) GetSecretSyncMeta(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetSecretsSyncDataResponse, error) {
 	out := new(GetSecretsSyncDataResponse)
 	err := c.cc.Invoke(ctx, "/proto.Gophkeeper/GetSecretSyncMeta", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *gophkeeperClient) GetSecretSyncMetaByName(ctx context.Context, in *Name, opts ...grpc.CallOption) (*SecretSyncData, error) {
+	out := new(SecretSyncData)
+	err := c.cc.Invoke(ctx, "/proto.Gophkeeper/GetSecretSyncMetaByName", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,6 +143,7 @@ type GophkeeperServer interface {
 	Login(context.Context, *Credentials) (*AuthMeta, error)
 	Register(context.Context, *Credentials) (*AuthMeta, error)
 	GetSecretSyncMeta(context.Context, *emptypb.Empty) (*GetSecretsSyncDataResponse, error)
+	GetSecretSyncMetaByName(context.Context, *Name) (*SecretSyncData, error)
 	GetSecret(context.Context, *SecretID) (*EncodedSecret, error)
 	SaveEncodedSecret(context.Context, *EncodedSecret) (*emptypb.Empty, error)
 	DeleteSecret(context.Context, *SecretID) (*emptypb.Empty, error)
@@ -152,6 +163,9 @@ func (UnimplementedGophkeeperServer) Register(context.Context, *Credentials) (*A
 }
 func (UnimplementedGophkeeperServer) GetSecretSyncMeta(context.Context, *emptypb.Empty) (*GetSecretsSyncDataResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSecretSyncMeta not implemented")
+}
+func (UnimplementedGophkeeperServer) GetSecretSyncMetaByName(context.Context, *Name) (*SecretSyncData, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetSecretSyncMetaByName not implemented")
 }
 func (UnimplementedGophkeeperServer) GetSecret(context.Context, *SecretID) (*EncodedSecret, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetSecret not implemented")
@@ -228,6 +242,24 @@ func _Gophkeeper_GetSecretSyncMeta_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(GophkeeperServer).GetSecretSyncMeta(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Gophkeeper_GetSecretSyncMetaByName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Name)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(GophkeeperServer).GetSecretSyncMetaByName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Gophkeeper/GetSecretSyncMetaByName",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(GophkeeperServer).GetSecretSyncMetaByName(ctx, req.(*Name))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -325,6 +357,10 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetSecretSyncMeta",
 			Handler:    _Gophkeeper_GetSecretSyncMeta_Handler,
+		},
+		{
+			MethodName: "GetSecretSyncMetaByName",
+			Handler:    _Gophkeeper_GetSecretSyncMetaByName_Handler,
 		},
 		{
 			MethodName: "GetSecret",

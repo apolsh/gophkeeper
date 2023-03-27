@@ -33,8 +33,8 @@ type Server interface {
 
 var _ Server = (*grpc.GRPCGophkeeperServer)(nil)
 
-// buildVersion - версия сборки
-// buildDate - дата сборки
+// buildVersion - версия сборки.
+// buildDate - дата сборки.
 // buildCommit - комментарий сборки.
 func main() {
 	log.Info("Build version: ", buildVersion)
@@ -92,6 +92,7 @@ func main() {
 	err := grpcServer.Start()
 	if err != nil {
 		log.Fatal(fmt.Errorf("could not start grpc server: %v", err))
+		quit <- syscall.SIGQUIT
 	}
 
 	<-done

@@ -5,23 +5,24 @@ import (
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 )
 
-// AuthKey authorization key for grpc context
+// AuthKey authorization key for grpc context.
 const AuthKey = "authorization"
 
 const servicePath = "/proto.Gophkeeper/"
 
-// DefaultAuthMethods default authorization schema for grpc methods
+// DefaultAuthMethods default authorization schema for grpc methods.
 var DefaultAuthMethods = map[string]bool{
-	servicePath + "Login":             false,
-	servicePath + "Register":          false,
-	servicePath + "GetSecretSyncMeta": true,
-	servicePath + "GetSecret":         true,
-	servicePath + "SaveEncodedSecret": true,
-	servicePath + "DeleteSecret":      true,
-	servicePath + "SubscribeOnChange": true,
+	servicePath + "Login":                   false,
+	servicePath + "Register":                false,
+	servicePath + "GetSecretSyncMeta":       true,
+	servicePath + "GetSecretSyncMetaByName": true,
+	servicePath + "GetSecret":               true,
+	servicePath + "SaveEncodedSecret":       true,
+	servicePath + "DeleteSecret":            true,
+	servicePath + "SubscribeOnChange":       true,
 }
 
-// NewUserFromProtoUser convert proto user to model user
+// NewUserFromProtoUser convert proto user to model user.
 func NewUserFromProtoUser(protoUser *User) model.User {
 	return model.User{
 		ID:             protoUser.GetID(),
@@ -31,7 +32,7 @@ func NewUserFromProtoUser(protoUser *User) model.User {
 	}
 }
 
-// NewProtoUserFromUser  convert model user to proto user
+// NewProtoUserFromUser  convert model user to proto user.
 func NewProtoUserFromUser(user model.User) *User {
 	return &User{
 		ID:           user.ID,
@@ -41,7 +42,7 @@ func NewProtoUserFromUser(user model.User) *User {
 	}
 }
 
-// NewProtoSyncMetaFromSycMeta convert model syncMeta to proto syncMeta
+// NewProtoSyncMetaFromSycMeta convert model syncMeta to proto syncMeta.
 func NewProtoSyncMetaFromSycMeta(syncMeta dto.SecretSyncMetadata) *SecretSyncData {
 	return &SecretSyncData{
 		SecretID:  syncMeta.ID,
@@ -50,7 +51,7 @@ func NewProtoSyncMetaFromSycMeta(syncMeta dto.SecretSyncMetadata) *SecretSyncDat
 	}
 }
 
-// EncodedSecretFromProto convert proto syncMeta to model syncMeta
+// EncodedSecretFromProto convert proto syncMeta to model syncMeta.
 func EncodedSecretFromProto(proto *EncodedSecret) model.EncodedSecret {
 	return model.EncodedSecret{
 		ID:             proto.GetId(),
@@ -64,7 +65,7 @@ func EncodedSecretFromProto(proto *EncodedSecret) model.EncodedSecret {
 	}
 }
 
-// EncSecretProtoFromEncSecret convert model EncodedSecret to proto
+// EncSecretProtoFromEncSecret convert model EncodedSecret to proto.
 func EncSecretProtoFromEncSecret(encSecret model.EncodedSecret) *EncodedSecret {
 	return &EncodedSecret{
 		Id:               encSecret.ID,
@@ -78,7 +79,7 @@ func EncSecretProtoFromEncSecret(encSecret model.EncodedSecret) *EncodedSecret {
 	}
 }
 
-// SecretSyncMetadataFromProto convert proto EncodedSecret to model
+// SecretSyncMetadataFromProto convert proto EncodedSecret to model.
 func SecretSyncMetadataFromProto(proto *SecretSyncData) dto.SecretSyncMetadata {
 	return dto.SecretSyncMetadata{
 		ID:        proto.SecretID,

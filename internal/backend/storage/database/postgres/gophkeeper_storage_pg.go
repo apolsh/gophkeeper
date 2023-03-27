@@ -31,12 +31,12 @@ var log = logger.LoggerOfComponent("pg-storage")
 //go:embed migrations/*.sql
 var fs embed.FS
 
-// GophkeeperStoragePG user and order storage postgres implementation
+// GophkeeperStoragePG user and order storage postgres implementation.
 type GophkeeperStoragePG struct {
 	db *pgxpool.Pool
 }
 
-// NewGophkeeperStoragePG GophkeeperStoragePG constructor
+// NewGophkeeperStoragePG GophkeeperStoragePG constructor.
 func NewGophkeeperStoragePG(databaseDSN string) (*GophkeeperStoragePG, error) {
 	conn, err := pgxpool.Connect(context.Background(), databaseDSN)
 	if err != nil {
@@ -59,7 +59,7 @@ func NewGophkeeperStoragePG(databaseDSN string) (*GophkeeperStoragePG, error) {
 	}, nil
 }
 
-// NewUser saves new user
+// NewUser saves new user.
 func (s *GophkeeperStoragePG) NewUser(ctx context.Context, login string, hashedPassword string) (model.User, error) {
 	var id int64
 	timestamp := time.Now().UTC().UnixMilli()
@@ -79,7 +79,7 @@ func (s *GophkeeperStoragePG) NewUser(ctx context.Context, login string, hashedP
 	return model.User{ID: id, Login: login, HashedPassword: hashedPassword, Timestamp: timestamp}, nil
 }
 
-// GetUserByLogin returns user by login
+// GetUserByLogin returns user by login.
 func (s *GophkeeperStoragePG) GetUserByLogin(ctx context.Context, login string) (model.User, error) {
 	q := "SELECT client_id, username, password FROM clients WHERE username = $1"
 	var user model.User
@@ -94,7 +94,7 @@ func (s *GophkeeperStoragePG) GetUserByLogin(ctx context.Context, login string) 
 	return user, nil
 }
 
-// GetSecretSyncMetaByUser returns metadata for secret synchronization
+// GetSecretSyncMetaByUser returns metadata for secret synchronization.
 func (s *GophkeeperStoragePG) GetSecretSyncMetaByUser(ctx context.Context, userID int64) ([]dto.SecretSyncMetadata, error) {
 	q := "SELECT secret_id, hash, date_last_modified FROM secrets WHERE owner = $1"
 
@@ -116,7 +116,18 @@ func (s *GophkeeperStoragePG) GetSecretSyncMetaByUser(ctx context.Context, userI
 	return secretSyncMetas, nil
 }
 
-// GetSecretByID returns EncodedSecret by ID
+func (s *GophkeeperStoragePG) GetSecretSyncMetaByOwnerAndName(ctx context.Context, userID int, name string) (dto.SecretSyncMetadata, error) {
+	q := "SELECT secret_id, hash, date_last_modified FROM secrets WHERE owner = $1 AND name = $2"
+
+	var secretSyncMeta dto.SecretSyncMetadata
+	err := s.db.QueryRow(ctx, q, userID, name).Scan(&secretSyncMeta.ID, &secretSyncMeta.Hash, &secretSyncMeta.Timestamp)
+	if err != nil {
+		return secretSyncMeta, storage.HandleUnknownDatabaseError(err)
+	}
+	return secretSyncMeta, nil
+}
+
+// GetSecretByID returns EncodedSecret by ID.
 func (s *GophkeeperStoragePG) GetSecretByID(ctx context.Context, secretID string) (model.EncodedSecret, error) {
 	q := "SELECT secret_id, owner, name, hash, description, enc_data, type, date_last_modified FROM secrets WHERE secret_id = $1"
 
@@ -141,7 +152,7 @@ func (s *GophkeeperStoragePG) GetSecretByID(ctx context.Context, secretID string
 	return encSecret, nil
 }
 
-// SaveEncodedSecret saves new EncodedSecret
+// SaveEncodedSecret saves new EncodedSecret.
 func (s *GophkeeperStoragePG) SaveEncodedSecret(ctx context.Context, secret model.EncodedSecret) error {
 	q := "INSERT INTO secrets (secret_id, owner, name, hash, description, enc_data, type, date_last_modified) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 
@@ -153,7 +164,7 @@ func (s *GophkeeperStoragePG) SaveEncodedSecret(ctx context.Context, secret mode
 	return nil
 }
 
-// DeleteEncodedSecret deletes EncodedSecret
+// DeleteEncodedSecret deletes EncodedSecret.
 func (s *GophkeeperStoragePG) DeleteEncodedSecret(ctx context.Context, secretID string) error {
 	q := "DELETE FROM secrets WHERE secret_id = $1"
 	_, err := s.db.Exec(ctx, q, secretID)
@@ -164,7 +175,7 @@ func (s *GophkeeperStoragePG) DeleteEncodedSecret(ctx context.Context, secretID 
 	return nil
 }
 
-// Close closes database connection
+// Close closes database connection.
 func (s *GophkeeperStoragePG) Close() {
 	s.db.Close()
 }

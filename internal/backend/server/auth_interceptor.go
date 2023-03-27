@@ -99,7 +99,7 @@ func (w *wrappedStream) SendMsg(m interface{}) error {
 	return w.ServerStream.SendMsg(m)
 }
 
-// StreamContextWrapper stream wrapper for rewrite the context
+// StreamContextWrapper stream wrapper for rewrite the context.
 type StreamContextWrapper interface {
 	grpc.ServerStream
 	SetContext(context.Context)

@@ -11,6 +11,7 @@ service Gophkeeper {
   rpc Login(Credentials) returns (AuthMeta);
   rpc Register(Credentials) returns (AuthMeta);
   rpc GetSecretSyncMeta(google.protobuf.Empty) returns (GetSecretsSyncDataResponse);
+  rpc GetSecretSyncMetaByName(Name) returns (SecretSyncData);
   rpc GetSecret(SecretID) returns (EncodedSecret);
   rpc SaveEncodedSecret(EncodedSecret) returns (google.protobuf.Empty);
   rpc DeleteSecret(SecretID) returns (google.protobuf.Empty);
@@ -20,6 +21,10 @@ service Gophkeeper {
 message Credentials {
   string login = 1;
   string password = 2;
+}
+
+message Name {
+  string name = 1;
 }
 
 message AuthMeta {

@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// UserStorage storage of users
+// UserStorage storage of users.
 type UserStorage interface {
 	// NewUser creates new user
 	NewUser(ctx context.Context, login string, s string) (model.User, error)
@@ -23,10 +23,12 @@ type UserStorage interface {
 	Close()
 }
 
-// SecretStorage storage for EncodedSecret
+// SecretStorage storage for EncodedSecret.
 type SecretStorage interface {
 	// GetSecretSyncMetaByUser returns metadata for secret synchronization
 	GetSecretSyncMetaByUser(ctx context.Context, userID int64) ([]dto.SecretSyncMetadata, error)
+	// GetSecretSyncMetaByOwnerAndName returns metadata for secret synchronization by ownerID and secret name
+	GetSecretSyncMetaByOwnerAndName(ctx context.Context, userID int, name string) (dto.SecretSyncMetadata, error)
 	// GetSecretByID returns EncodedSecret by ID
 	GetSecretByID(ctx context.Context, secretID string) (model.EncodedSecret, error)
 	// SaveEncodedSecret saves EncodedSecret
@@ -38,20 +40,20 @@ type SecretStorage interface {
 }
 
 var (
-	// ErrUserNotFound user not found error
+	// ErrUserNotFound user not found error.
 	ErrUserNotFound = errors.New("the specified user is not registered in the system")
-	// ErrOwnerMissmatch owner missmatch error
+	// ErrOwnerMissmatch owner missmatch error.
 	ErrOwnerMissmatch = errors.New("requested item belongs to another user")
 )
 
-// GophkeeperServiceImpl service for EncodedSecret and User management
+// GophkeeperServiceImpl service for EncodedSecret and User management.
 type GophkeeperServiceImpl struct {
 	tokenManager  tokenManager.TokenManager
 	userStorage   UserStorage
 	secretStorage SecretStorage
 }
 
-// NewGophkeeperService GophkeeperServiceImpl constructor
+// NewGophkeeperService GophkeeperServiceImpl constructor.
 func NewGophkeeperService(tokenManager tokenManager.TokenManager, userStorage UserStorage, secretStorage SecretStorage) *GophkeeperServiceImpl {
 	return &GophkeeperServiceImpl{
 		tokenManager:  tokenManager,
@@ -60,7 +62,7 @@ func NewGophkeeperService(tokenManager tokenManager.TokenManager, userStorage Us
 	}
 }
 
-// Login login user
+// Login login user.
 func (s *GophkeeperServiceImpl) Login(ctx context.Context, login string, password string) (string, model.User, error) {
 	if login == "" || password == "" {
 		return "", model.User{}, ErrorEmptyValue
@@ -85,7 +87,7 @@ func (s *GophkeeperServiceImpl) Login(ctx context.Context, login string, passwor
 	return token, user, nil
 }
 
-// Register register user
+// Register register user.
 func (s *GophkeeperServiceImpl) Register(ctx context.Context, login string, password string) (string, model.User, error) {
 	if login == "" || password == "" {
 		return "", model.User{}, ErrorEmptyValue
@@ -108,9 +110,14 @@ func (s *GophkeeperServiceImpl) Register(ctx context.Context, login string, pass
 	return token, user, nil
 }
 
-// GetSecretSyncMetaByUser returns metadata for secret synchronization
+// GetSecretSyncMetaByUser returns metadata for secret synchronization.
 func (s *GophkeeperServiceImpl) GetSecretSyncMetaByUser(ctx context.Context, id int64) ([]dto.SecretSyncMetadata, error) {
 	return s.secretStorage.GetSecretSyncMetaByUser(ctx, id)
+}
+
+// GetSecretSyncMetaByOwnerAndName returns metadata for secret synchronization by owner and name.
+func (s *GophkeeperServiceImpl) GetSecretSyncMetaByOwnerAndName(ctx context.Context, userID int, name string) (dto.SecretSyncMetadata, error) {
+	return s.secretStorage.GetSecretSyncMetaByOwnerAndName(ctx, userID, name)
 }
 
 // GetSecret returns EncodedSecret by ID
@@ -125,7 +132,7 @@ func (s *GophkeeperServiceImpl) GetSecret(ctx context.Context, userID int, secre
 	return encodedSecret, nil
 }
 
-// SaveEncodedSecret saves EncodedSecret
+// SaveEncodedSecret saves EncodedSecret.
 func (s *GophkeeperServiceImpl) SaveEncodedSecret(ctx context.Context, ownerID int, secret model.EncodedSecret) error {
 	if int64(ownerID) != secret.Owner {
 		return ErrOwnerMissmatch
@@ -134,7 +141,7 @@ func (s *GophkeeperServiceImpl) SaveEncodedSecret(ctx context.Context, ownerID i
 	return s.secretStorage.SaveEncodedSecret(ctx, secret)
 }
 
-// DeleteSecret delete EncodedSecret by ID
+// DeleteSecret delete EncodedSecret by ID.
 func (s *GophkeeperServiceImpl) DeleteSecret(ctx context.Context, ownerID int, secretID string) error {
 	encodedSecret, err := s.secretStorage.GetSecretByID(ctx, secretID)
 	if err != nil {

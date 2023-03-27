@@ -27,6 +27,7 @@ type GophkeeperService interface {
 	Login(ctx context.Context, login string, password string) (string, model.User, error)
 	Register(ctx context.Context, login string, password string) (string, model.User, error)
 	GetSecretSyncMetaByUser(ctx context.Context, id int64) ([]dto.SecretSyncMetadata, error)
+	GetSecretSyncMetaByOwnerAndName(ctx context.Context, userID int, name string) (dto.SecretSyncMetadata, error)
 	GetSecret(ctx context.Context, userID int, secretID string) (model.EncodedSecret, error)
 	SaveEncodedSecret(ctx context.Context, ownerID int, secret model.EncodedSecret) error
 	DeleteSecret(ctx context.Context, ownerID int, secretID string) error
@@ -39,7 +40,7 @@ type gophkeeperGRPCHandler struct {
 
 var empty emptypb.Empty
 
-// GRPCGophkeeperServer grpc gophkeeper server
+// GRPCGophkeeperServer grpc gophkeeper server.
 type GRPCGophkeeperServer struct {
 	addr         string
 	service      GophkeeperService
@@ -52,7 +53,7 @@ type GRPCGophkeeperServer struct {
 func (s *GRPCGophkeeperServer) Start() error {
 	listen, err := net.Listen("tcp", s.addr)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	grpcServer := grpc.NewServer(
@@ -72,7 +73,7 @@ func (s *GRPCGophkeeperServer) Stop(_ context.Context) error {
 	return nil
 }
 
-// NewGRPCGophkeeperServer GRPCGophkeeperServer constructor
+// NewGRPCGophkeeperServer GRPCGophkeeperServer constructor.
 func NewGRPCGophkeeperServer(serverAddr string, service GophkeeperService, manager tokenManager.TokenManager) *GRPCGophkeeperServer {
 	return &GRPCGophkeeperServer{
 		addr:         serverAddr,
@@ -82,7 +83,7 @@ func NewGRPCGophkeeperServer(serverAddr string, service GophkeeperService, manag
 	}
 }
 
-// Login login user
+// Login login user.
 func (s *gophkeeperGRPCHandler) Login(ctx context.Context, credentials *pb.Credentials) (*pb.AuthMeta, error) {
 	token, user, err := s.service.Login(ctx, credentials.Login, credentials.Password)
 	if err != nil {
@@ -95,7 +96,7 @@ func (s *gophkeeperGRPCHandler) Login(ctx context.Context, credentials *pb.Crede
 	return &pb.AuthMeta{Token: token, User: pb.NewProtoUserFromUser(user)}, nil
 }
 
-// Register register user
+// Register register user.
 func (s *gophkeeperGRPCHandler) Register(ctx context.Context, credentials *pb.Credentials) (*pb.AuthMeta, error) {
 	token, user, err := s.service.Register(ctx, credentials.Login, credentials.Password)
 	if err != nil {
@@ -110,9 +111,9 @@ func (s *gophkeeperGRPCHandler) Register(ctx context.Context, credentials *pb.Cr
 	return &pb.AuthMeta{Token: token, User: pb.NewProtoUserFromUser(user)}, nil
 }
 
-// GetSecretSyncMeta returns metadata for secret synchronization
+// GetSecretSyncMeta returns metadata for secret synchronization.
 func (s *gophkeeperGRPCHandler) GetSecretSyncMeta(ctx context.Context, _ *emptypb.Empty) (*pb.GetSecretsSyncDataResponse, error) {
-	id, err := extractSingleIntValueFromContext(ctx, UserIDKey)
+	id, err := getUserID(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to extract user id: "+err.Error())
 	}
@@ -126,9 +127,21 @@ func (s *gophkeeperGRPCHandler) GetSecretSyncMeta(ctx context.Context, _ *emptyp
 	return &pb.GetSecretsSyncDataResponse{Items: protoSyncMeta}, nil
 }
 
-// GetSecret returns EncodedSecret by ID
+func (s *gophkeeperGRPCHandler) GetSecretSyncMetaByName(ctx context.Context, name *pb.Name) (*pb.SecretSyncData, error) {
+	id, err := getUserID(ctx)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "failed to extract user id: "+err.Error())
+	}
+	syncMeta, err := s.service.GetSecretSyncMetaByOwnerAndName(ctx, id, name.GetName())
+	if err != nil {
+		return nil, status.Errorf(codes.Unknown, err.Error())
+	}
+	return pb.NewProtoSyncMetaFromSycMeta(syncMeta), nil
+}
+
+// GetSecret returns EncodedSecret by ID.
 func (s *gophkeeperGRPCHandler) GetSecret(ctx context.Context, secretID *pb.SecretID) (*pb.EncodedSecret, error) {
-	ownerID, err := extractSingleIntValueFromContext(ctx, UserIDKey)
+	ownerID, err := getUserID(ctx)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to extract user id: "+err.Error())
 	}
@@ -144,9 +157,9 @@ func (s *gophkeeperGRPCHandler) GetSecret(ctx context.Context, secretID *pb.Secr
 	return pb.EncSecretProtoFromEncSecret(encodedSecret), nil
 }
 
-// SaveEncodedSecret saves EncodedSecret
+// SaveEncodedSecret saves EncodedSecret.
 func (s *gophkeeperGRPCHandler) SaveEncodedSecret(ctx context.Context, encodedSecret *pb.EncodedSecret) (*emptypb.Empty, error) {
-	ownerID, err := extractSingleIntValueFromContext(ctx, UserIDKey)
+	ownerID, err := getUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -163,9 +176,9 @@ func (s *gophkeeperGRPCHandler) SaveEncodedSecret(ctx context.Context, encodedSe
 	return &empty, err
 }
 
-// DeleteSecret delete EncodedSecret by ID
+// DeleteSecret delete EncodedSecret by ID.
 func (s *gophkeeperGRPCHandler) DeleteSecret(ctx context.Context, secretID *pb.SecretID) (*emptypb.Empty, error) {
-	ownerID, err := extractSingleIntValueFromContext(ctx, UserIDKey)
+	ownerID, err := getUserID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -181,13 +194,13 @@ func (s *gophkeeperGRPCHandler) DeleteSecret(ctx context.Context, secretID *pb.S
 	return &emptypb.Empty{}, nil
 }
 
-func extractSingleIntValueFromContext(ctx context.Context, key string) (int, error) {
+func getUserID(ctx context.Context) (int, error) {
 	meta, ok := metadata.FromIncomingContext(ctx)
 
 	var value string
 
 	if ok {
-		values := meta.Get(key)
+		values := meta.Get(UserIDKey)
 		if len(values) > 0 {
 			value = values[0]
 		}

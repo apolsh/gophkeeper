@@ -31,20 +31,20 @@ const (
 	card        string = "card"
 )
 
-// GophkeeperViewInteractiveCLI cli implementation of IGophkeeperView
+// GophkeeperViewInteractiveCLI cli implementation of GophkeeperView.
 type GophkeeperViewInteractiveCLI struct {
 	c            *controller.GophkeeperController
 	isAuthorized bool
 }
 
-var _ controller.IGophkeeperView = (*GophkeeperViewInteractiveCLI)(nil)
+var _ controller.GophkeeperView = (*GophkeeperViewInteractiveCLI)(nil)
 
-// SetController sets controller for UI implementation
+// SetController sets controller for UI implementation.
 func (v *GophkeeperViewInteractiveCLI) SetController(controller *controller.GophkeeperController) {
 	v.c = controller
 }
 
-// Show shows UI implementation
+// Show shows UI implementation.
 func (v *GophkeeperViewInteractiveCLI) Show(ctx context.Context) error {
 MENU:
 	for {
@@ -175,12 +175,12 @@ MENU:
 	return nil
 }
 
-// SetAuthorized sets that user is already authorized for UI implementation
+// SetAuthorized sets that user is already authorized for UI implementation.
 func (v *GophkeeperViewInteractiveCLI) SetAuthorized(isAuthorized bool) {
 	v.isAuthorized = isAuthorized
 }
 
-// ViewSecretsInfoList shows secret info list
+// ViewSecretsInfoList shows secret info list.
 func (v *GophkeeperViewInteractiveCLI) ViewSecretsInfoList(secretInfos []dto.SecretItemInfo) {
 	headers := []string{"NAME", "TYPE", "DESCRIPTION"}
 	tableData := make(pterm.TableData, len(secretInfos)+1, len(secretInfos)+1)
@@ -195,17 +195,17 @@ func (v *GophkeeperViewInteractiveCLI) ViewSecretsInfoList(secretInfos []dto.Sec
 	}
 }
 
-// ShowSecretItem shows secret item
+// ShowSecretItem shows secret item.
 func (v *GophkeeperViewInteractiveCLI) ShowSecretItem(item model.SecretItem) {
 	pterm.Info.Println(item.GetSecretPayload())
 }
 
-// ShowError shows error
+// ShowError shows error.
 func (v *GophkeeperViewInteractiveCLI) ShowError(err error) {
 	pterm.Error.Println(err)
 }
 
-// GetStringInput gets input
+// GetStringInput gets input.
 func (v *GophkeeperViewInteractiveCLI) GetStringInput(ctx context.Context, inputText string) string {
 	var path string
 	err := survey.AskOne(getStoreFilepathQuestion, &path, survey.WithValidator(survey.Required))

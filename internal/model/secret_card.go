@@ -12,7 +12,7 @@ import (
 
 var _ SecretItem = (*CardSecretItem)(nil)
 
-// CardSecretItem binary implementation of SecretItem
+// CardSecretItem binary implementation of SecretItem.
 type CardSecretItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -22,17 +22,17 @@ type CardSecretItem struct {
 	CVV         string `json:"cvv"`
 }
 
-// GetType returns secret item type
+// GetType returns secret item type.
 func (c *CardSecretItem) GetType() string {
 	return c.SecretType
 }
 
-// GetSecretPayload returns text implementation of secret item payload
+// GetSecretPayload returns text implementation of secret item payload.
 func (c *CardSecretItem) GetSecretPayload() string {
 	return fmt.Sprintf("[OWNER]: %s \n[NUMBER]: %s \n[CVV]: %s \n", c.OwnerName, c.Number, c.CVV)
 }
 
-// NewEncodedSecret encodes secret item
+// NewEncodedSecret encodes secret item.
 func (c *CardSecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []byte) ([]byte, error), ownerID int64) (EncodedSecret, error) {
 	jsonBytes, err := json.Marshal(c)
 	if err != nil {
@@ -57,7 +57,7 @@ func (c *CardSecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []byt
 	return encodedSecret, nil
 }
 
-// DecodeCardSecretItem decodes EncodedSecret item into CardSecretItem
+// DecodeCardSecretItem decodes EncodedSecret item into CardSecretItem.
 func DecodeCardSecretItem(decode func(byteToEncode []byte) ([]byte, error), encoded EncodedSecret) (*CardSecretItem, error) {
 	var credentialsSecret CardSecretItem
 	decodedBytes, err := decode(encoded.EncodedContent)
@@ -71,7 +71,7 @@ func DecodeCardSecretItem(decode func(byteToEncode []byte) ([]byte, error), enco
 	return &credentialsSecret, nil
 }
 
-// NewCardSecretItem CardSecretItem constructor
+// NewCardSecretItem CardSecretItem constructor.
 func NewCardSecretItem(name, description, owner, number, cvv string) *CardSecretItem {
 	return &CardSecretItem{
 		Name:        name,

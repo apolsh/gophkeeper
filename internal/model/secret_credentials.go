@@ -12,7 +12,7 @@ import (
 
 var _ SecretItem = (*CredentialsSecretItem)(nil)
 
-// CredentialsSecretItem binary implementation of SecretItem
+// CredentialsSecretItem binary implementation of SecretItem.
 type CredentialsSecretItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -21,17 +21,17 @@ type CredentialsSecretItem struct {
 	Password    string `json:"password"`
 }
 
-// GetType returns secret item type
+// GetType returns secret item type.
 func (c *CredentialsSecretItem) GetType() string {
 	return c.SecretType
 }
 
-// GetSecretPayload returns text implementation of secret item payload
+// GetSecretPayload returns text implementation of secret item payload.
 func (c *CredentialsSecretItem) GetSecretPayload() string {
 	return fmt.Sprintf("[LOGIN]: %s \n[PASSWORD]: %s \n", c.Login, c.Password)
 }
 
-// NewEncodedSecret encodes secret item
+// NewEncodedSecret encodes secret item.
 func (c *CredentialsSecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []byte) ([]byte, error), ownerID int64) (EncodedSecret, error) {
 	jsonBytes, err := json.Marshal(c)
 	if err != nil {
@@ -56,7 +56,7 @@ func (c *CredentialsSecretItem) NewEncodedSecret(encodeFunction func(byteToDecod
 	return encodedSecret, nil
 }
 
-// DecodeCredentialsSecretItem decodes EncodedSecret item into CredentialsSecretItem
+// DecodeCredentialsSecretItem decodes EncodedSecret item into CredentialsSecretItem.
 func DecodeCredentialsSecretItem(decode func(byteToEncode []byte) ([]byte, error), encoded EncodedSecret) (*CredentialsSecretItem, error) {
 	var credentialsSecret CredentialsSecretItem
 	decodedBytes, err := decode(encoded.EncodedContent)
@@ -70,7 +70,7 @@ func DecodeCredentialsSecretItem(decode func(byteToEncode []byte) ([]byte, error
 	return &credentialsSecret, nil
 }
 
-// NewCredentialsSecretItem CredentialsSecretItem constructor
+// NewCredentialsSecretItem CredentialsSecretItem constructor.
 func NewCredentialsSecretItem(name, description, login, password string) *CredentialsSecretItem {
 	return &CredentialsSecretItem{
 		Name:        name,

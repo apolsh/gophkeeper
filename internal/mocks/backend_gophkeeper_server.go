@@ -65,6 +65,21 @@ func (mr *MockGophkeeperServiceMockRecorder) GetSecret(arg0, arg1, arg2 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecret", reflect.TypeOf((*MockGophkeeperService)(nil).GetSecret), arg0, arg1, arg2)
 }
 
+// GetSecretSyncMetaByOwnerAndName mocks base method.
+func (m *MockGophkeeperService) GetSecretSyncMetaByOwnerAndName(arg0 context.Context, arg1 int, arg2 string) (dto.SecretSyncMetadata, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSecretSyncMetaByOwnerAndName", arg0, arg1, arg2)
+	ret0, _ := ret[0].(dto.SecretSyncMetadata)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSecretSyncMetaByOwnerAndName indicates an expected call of GetSecretSyncMetaByOwnerAndName.
+func (mr *MockGophkeeperServiceMockRecorder) GetSecretSyncMetaByOwnerAndName(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSecretSyncMetaByOwnerAndName", reflect.TypeOf((*MockGophkeeperService)(nil).GetSecretSyncMetaByOwnerAndName), arg0, arg1, arg2)
+}
+
 // GetSecretSyncMetaByUser mocks base method.
 func (m *MockGophkeeperService) GetSecretSyncMetaByUser(arg0 context.Context, arg1 int64) ([]dto.SecretSyncMetadata, error) {
 	m.ctrl.T.Helper()

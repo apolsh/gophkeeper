@@ -82,6 +82,7 @@ var (
 	secretTimestamp    int64 = 111
 	secretType               = model.Credentials
 	secretEncContent         = []byte("bytes")
+	syncMeta                 = dto.SecretSyncMetadata{ID: secretID, Hash: secretHash, Timestamp: secretTimestamp}
 	syncMetas                = []dto.SecretSyncMetadata{{ID: secretID, Hash: secretHash, Timestamp: secretTimestamp}}
 	encodedSecret            = model.EncodedSecret{ID: secretID, Name: secretName, Owner: userID, Description: secretDescription, Type: secretType, EncodedContent: secretEncContent, Hash: secretHash, Timestamp: secretTimestamp}
 )
@@ -168,6 +169,37 @@ func (s *GRPCServerSuite) TestGetSecretSyncMetaError() {
 	s.service.EXPECT().GetSecretSyncMetaByUser(gomock.Any(), userID).Return([]dto.SecretSyncMetadata{}, errors.New("some error"))
 	ctx := metadata.AppendToOutgoingContext(context.Background(), pb.AuthKey, userToken)
 	_, err := s.client.GetSecretSyncMeta(ctx, &emptypb.Empty{})
+	assert.NotNil(s.T(), err)
+	st, ok := status.FromError(err)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), codes.Unknown, st.Code())
+}
+
+func (s *GRPCServerSuite) TestGetSecretSyncMetaByNameSuccess() {
+	s.tokenManager.EXPECT().ParseToken(userToken).Return(userID, nil)
+	s.service.EXPECT().GetSecretSyncMetaByOwnerAndName(gomock.Any(), int(userID), secretName).Return(syncMeta, nil)
+	ctx := metadata.AppendToOutgoingContext(context.Background(), pb.AuthKey, userToken)
+	meta, err := s.client.GetSecretSyncMetaByName(ctx, &pb.Name{Name: secretName})
+	assert.NoError(s.T(), err)
+	assert.NotNil(s.T(), meta)
+	assert.Equal(s.T(), secretID, meta.SecretID)
+	assert.Equal(s.T(), secretHash, meta.Hash)
+	assert.Equal(s.T(), secretTimestamp, meta.Timestamp)
+}
+
+func (s *GRPCServerSuite) TestGetSecretSyncMetaByNameNoAuth() {
+	_, err := s.client.GetSecretSyncMetaByName(context.Background(), &pb.Name{Name: secretName})
+	assert.NotNil(s.T(), err)
+	st, ok := status.FromError(err)
+	assert.True(s.T(), ok)
+	assert.Equal(s.T(), codes.Unauthenticated, st.Code())
+}
+
+func (s *GRPCServerSuite) TestGetSecretSyncMetaByNameError() {
+	s.tokenManager.EXPECT().ParseToken(userToken).Return(userID, nil)
+	s.service.EXPECT().GetSecretSyncMetaByOwnerAndName(gomock.Any(), int(userID), secretName).Return(dto.SecretSyncMetadata{}, errors.New("some error"))
+	ctx := metadata.AppendToOutgoingContext(context.Background(), pb.AuthKey, userToken)
+	_, err := s.client.GetSecretSyncMetaByName(ctx, &pb.Name{Name: secretName})
 	assert.NotNil(s.T(), err)
 	st, ok := status.FromError(err)
 	assert.True(s.T(), ok)

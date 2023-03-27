@@ -12,50 +12,50 @@ import (
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 )
 
-// IGophkeeperView UI for gophkeeper
-type IGophkeeperView interface {
-	// Show shows UI implementation
+// GophkeeperView UI for gophkeeper.
+type GophkeeperView interface {
+	// Show shows UI implementation.
 	Show(ctx context.Context) error
-	// SetController sets controller for UI implementation
+	// SetController sets controller for UI implementation.
 	SetController(controller *GophkeeperController)
-	// SetAuthorized sets that user is already authorized for UI implementation
+	// SetAuthorized sets that user is already authorized for UI implementation.
 	SetAuthorized(isAuthorized bool)
-	// ViewSecretsInfoList shows secret info list
+	// ViewSecretsInfoList shows secret info list.
 	ViewSecretsInfoList(secretInfos []dto.SecretItemInfo)
-	// ShowSecretItem shows secret item
+	// ShowSecretItem shows secret item.
 	ShowSecretItem(item model.SecretItem)
-	// GetStringInput gets input
+	// GetStringInput gets input.
 	GetStringInput(ctx context.Context, inputText string) string
-	// ShowError shows error
+	// ShowError shows error.
 	ShowError(err error)
 }
 
-// LocalStorage local storage for gophkeeper
+// LocalStorage local storage for gophkeeper.
 type LocalStorage interface {
-	// SaveUser saves new user
+	// SaveUser saves new user.
 	SaveUser(ctx context.Context, user model.User) error
-	// UpdateUser update users metadata
+	// UpdateUser update users metadata.
 	UpdateUser(ctx context.Context, user model.User) error
-	// GetUserByID returns user by ID
+	// GetUserByID returns user by ID.
 	GetUserByID(ctx context.Context, userID int64) (model.User, error)
-	// GetSecretSyncMetaByID returns metadata for one secret synchronization
+	// GetSecretSyncMetaByID returns metadata for one secret synchronization.
 	GetSecretSyncMetaByID(ctx context.Context, id string) (dto.SecretSyncMetadata, error)
-	// GetSecretSyncMetaByOwnerID returns metadata for all secrets synchronization by user
+	// GetSecretSyncMetaByOwnerID returns metadata for all secrets synchronization by user.
 	GetSecretSyncMetaByOwnerID(ctx context.Context, ownerID int64) ([]dto.SecretSyncMetadata, error)
-	// SaveEncodedSecret saves EncodedSecret
+	// SaveEncodedSecret saves EncodedSecret.
 	SaveEncodedSecret(ctx context.Context, encSecret model.EncodedSecret) error
-	// GetSecretByID returns EncodedSecret by ID
+	// GetSecretByID returns EncodedSecret by ID.
 	GetSecretByID(ctx context.Context, id string) (model.EncodedSecret, error)
-	// GetAllSecretsItemInfoByUserID returns all secret item info by user id
+	// GetAllSecretsItemInfoByUserID returns all secret item info by user id.
 	GetAllSecretsItemInfoByUserID(ctx context.Context, ownerID int64) ([]dto.SecretItemInfo, error)
-	// GetSecretByName returns secret by it name
+	// GetSecretByName returns secret by it name.
 	GetSecretByName(ctx context.Context, name string) (model.EncodedSecret, error)
-	// DeleteSecretByName delete secret by it name
+	// DeleteSecretByName delete secret by it name.
 	DeleteSecretByName(ctx context.Context, name string) (string, error)
 }
 
-// Encoder for decode and encode bytes
-// should set secret key via SetSecretKey before use
+// Encoder for decode and encode bytes.
+// should set secret key via SetSecretKey before use.
 type Encoder interface {
 	// Encode encodes bytes
 	Encode(byteToEncode []byte) ([]byte, error)
@@ -65,21 +65,23 @@ type Encoder interface {
 	SetSecretKey(secretKey string) error
 }
 
-// BackendClient  client for interactions with backend
+// BackendClient  client for interactions with backend.
 type BackendClient interface {
-	// Login login user
+	// Login login user.
 	Login(ctx context.Context, login, password string) (string, model.User, error)
-	// Register registers user
+	// Register registers user.
 	Register(ctx context.Context, login, password string) (string, model.User, error)
-	// SetAuthTokenForRequests sets authorization token for this client (add it to every required auth request)
+	// SetAuthTokenForRequests sets authorization token for this client (add it to every required auth request).
 	SetAuthTokenForRequests(token string)
-	// GetSecretSyncMeta returns metadata for synchronization metadata
+	// GetSecretSyncMeta returns metadata for synchronization metadata.
 	GetSecretSyncMeta(ctx context.Context) ([]dto.SecretSyncMetadata, error)
-	// GetSecretByID returns EncodedSecret by ID
+	// GetSecretSyncMetaByName returns metadata for synchronization metadata for current secret by its name.
+	GetSecretSyncMetaByName(ctx context.Context, name string) (dto.SecretSyncMetadata, error)
+	// GetSecretByID returns EncodedSecret by ID.
 	GetSecretByID(ctx context.Context, id string) (model.EncodedSecret, error)
-	// SaveEncodedSecret  saves EncodedSecret
+	// SaveEncodedSecret  saves EncodedSecret.
 	SaveEncodedSecret(ctx context.Context, encSecret model.EncodedSecret) error
-	// DeleteSecret delete EncodedSecret by ID
+	// DeleteSecret delete EncodedSecret by ID.
 	DeleteSecret(ctx context.Context, id string) error
 }
 
@@ -89,26 +91,22 @@ type authorizationMeta struct {
 	password string
 }
 
-// GophkeeperController core control for client gophkeeper application
+// GophkeeperController core control for client gophkeeper application.
 type GophkeeperController struct {
-	view          IGophkeeperView
+	view          GophkeeperView
 	remoteStorage BackendClient
 	authMeta      authorizationMeta
 	localStorage  LocalStorage
 	encoder       Encoder
 }
 
-// NewGophkeeperController GophkeeperController constructor
+// NewGophkeeperController GophkeeperController constructor.
 func NewGophkeeperController(
-	ctx context.Context,
-	view IGophkeeperView,
+	view GophkeeperView,
 	backendClient BackendClient,
 	localStorage LocalStorage,
 	encoder Encoder,
-	syncPeriod int64,
-
 ) *GophkeeperController {
-
 	c := GophkeeperController{
 		view:          view,
 		remoteStorage: backendClient,
@@ -117,12 +115,11 @@ func NewGophkeeperController(
 	}
 
 	view.SetController(&c)
-	runPeriodically(ctx, c.synchronizeSecretItems, view.ShowError, syncPeriod)
 
 	return &c
 }
 
-// Login logins user
+// Login logins user.
 func (c *GophkeeperController) Login(ctx context.Context, login, password string) {
 	token, user, err := c.remoteStorage.Login(ctx, login, password)
 	if err != nil {
@@ -136,7 +133,7 @@ func (c *GophkeeperController) Login(ctx context.Context, login, password string
 		return
 	}
 	c.authMeta = authorizationMeta{login: login, password: password, id: user.ID}
-	err = c.synchronizeSecretItems(ctx)
+	err = c.SynchronizeSecretItems(ctx)
 	if err != nil {
 		c.view.ShowError(err)
 		c.authMeta = authorizationMeta{}
@@ -151,7 +148,7 @@ func (c *GophkeeperController) Login(ctx context.Context, login, password string
 	c.view.SetAuthorized(true)
 }
 
-// Register registers user
+// Register registers user.
 func (c *GophkeeperController) Register(ctx context.Context, login, password, repeatedPassword string) {
 	err := passwordValidation(password, repeatedPassword)
 	if err != nil {
@@ -178,7 +175,7 @@ func (c *GophkeeperController) Register(ctx context.Context, login, password, re
 	}
 }
 
-// SaveSecret saves secret item
+// SaveSecret saves secret item.
 func (c *GophkeeperController) SaveSecret(ctx context.Context, item model.SecretItem) {
 	encodedSecret, err := item.NewEncodedSecret(c.encoder.Encode, c.authMeta.id)
 	if err != nil {
@@ -199,8 +196,12 @@ func (c *GophkeeperController) SaveSecret(ctx context.Context, item model.Secret
 	}
 }
 
-// ListSecret shows all stored secrets of user
+// ListSecret shows all stored secrets of user.
 func (c *GophkeeperController) ListSecret(ctx context.Context) {
+	err := c.SynchronizeSecretItems(ctx)
+	if err != nil {
+		c.view.ShowError(fmt.Errorf("synchronization operation failed: %w", err))
+	}
 	secretItemsInfo, err := c.localStorage.GetAllSecretsItemInfoByUserID(ctx, c.authMeta.id)
 	if err != nil {
 		c.view.ShowError(fmt.Errorf("failed to get secrets info: %w", err))
@@ -209,10 +210,15 @@ func (c *GophkeeperController) ListSecret(ctx context.Context) {
 	c.view.ViewSecretsInfoList(secretItemsInfo)
 }
 
-// GetSecret get decoded secret item by name
+// GetSecret get decoded secret item by name.
 func (c *GophkeeperController) GetSecret(ctx context.Context, name string) {
-	encodedSecret, err := c.localStorage.GetSecretByName(ctx, name)
-	if err != nil {
+	remoteSyncData, syncErr := c.remoteStorage.GetSecretSyncMetaByName(ctx, name)
+	if syncErr != nil {
+		c.view.ShowError(fmt.Errorf("synchronization operation failed: %w", syncErr))
+	}
+
+	localEncSecret, err := c.localStorage.GetSecretByName(ctx, name)
+	if err != nil && syncErr != nil {
 		if errors.Is(storage.ErrorItemNotFound, err) {
 			c.view.ShowError(fmt.Errorf("secret with name \"%s\" not found", name))
 			return
@@ -220,7 +226,23 @@ func (c *GophkeeperController) GetSecret(ctx context.Context, name string) {
 		c.view.ShowError(fmt.Errorf("failed to find secret %s: %w", name, err))
 		return
 	}
-	secretItem, err := encodedSecret.Decode(c.encoder.Decode)
+
+	//synchronization secret
+	if syncErr == nil && remoteSyncData.Hash != localEncSecret.Hash {
+		remoteSecret, err := c.remoteStorage.GetSecretByID(ctx, localEncSecret.ID)
+		if err != nil {
+			c.view.ShowError(fmt.Errorf("synchronization operation failed: %w", syncErr))
+		} else {
+			err = c.localStorage.SaveEncodedSecret(ctx, remoteSecret)
+			if err != nil {
+				c.view.ShowError(fmt.Errorf("synchronization operation failed: %w", syncErr))
+			} else {
+				localEncSecret = remoteSecret
+			}
+		}
+	}
+
+	secretItem, err := localEncSecret.Decode(c.encoder.Decode)
 	if err != nil {
 		c.view.ShowError(fmt.Errorf("failed to decode secret: %w", err))
 		return
@@ -242,7 +264,7 @@ func (c *GophkeeperController) GetSecret(ctx context.Context, name string) {
 	c.view.ShowSecretItem(secretItem)
 }
 
-// DeleteSecret deletes secret item
+// DeleteSecret deletes secret item.
 func (c *GophkeeperController) DeleteSecret(ctx context.Context, name string) {
 	id, err := c.localStorage.DeleteSecretByName(ctx, name)
 	if err != nil {
@@ -262,15 +284,15 @@ func (c *GophkeeperController) DeleteSecret(ctx context.Context, name string) {
 	}
 }
 
-// UnAuthorize ends the current user session
+// UnAuthorize ends the current user session.
 func (c *GophkeeperController) UnAuthorize() {
 	c.authMeta = authorizationMeta{}
 	c.view.SetAuthorized(false)
 }
 
-// Synchronize synchronize all secret metadata between client and backend
+// Synchronize synchronize all secret metadata between client and backend.
 func (c *GophkeeperController) Synchronize(ctx context.Context) {
-	err := c.synchronizeSecretItems(ctx)
+	err := c.SynchronizeSecretItems(ctx)
 	if err != nil {
 		c.view.ShowError(err)
 	}
@@ -316,7 +338,7 @@ func (c *GophkeeperController) synchronizeAuthMeta(ctx context.Context, user mod
 	return nil
 }
 
-func (c *GophkeeperController) synchronizeSecretItems(ctx context.Context) error {
+func (c *GophkeeperController) SynchronizeSecretItems(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()

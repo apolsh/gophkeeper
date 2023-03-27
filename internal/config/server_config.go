@@ -10,7 +10,7 @@ const (
 	PostgresStorageType = "postgres"
 )
 
-// ServerConfig configuration files for backend
+// ServerConfig configuration files for backend.
 type ServerConfig struct {
 	DatabaseDSN    string `env:"DATABASE_DSN" envDefault:"postgresql://gophkeeper:gophkeeper@localhost:5432/gophkeeper"`
 	ServerAddr     string `env:"SERVER_ADDRESS" envDefault:":3333"`
@@ -34,7 +34,7 @@ func (c *ServerConfig) populateEmptyFields(another ServerConfig) {
 	}
 }
 
-// LoadServerConfig reads environment variables and flags, prior to flags
+// LoadServerConfig reads environment variables and flags, prior to flags.
 func LoadServerConfig() ServerConfig {
 
 	var mainConfig ServerConfig

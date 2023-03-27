@@ -1,11 +1,11 @@
 package dto
 
-// SecretItemInfo main decrypted information for secret items
+// SecretItemInfo main decrypted information for secret items.
 type SecretItemInfo struct {
-	// Name of secret item
+	// Name of secret item.
 	Name string
-	// Description of secret item
+	// Description of secret item.
 	Description string
-	// SecretType type of secret item
+	// SecretType type of secret item.
 	SecretType string
 }

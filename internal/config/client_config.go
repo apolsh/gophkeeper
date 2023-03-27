@@ -8,12 +8,12 @@ import (
 	"github.com/caarlos0/env"
 )
 
-// ClientConfig configuration files for backend
+// ClientConfig configuration files for backend.
 type ClientConfig struct {
 	BaseDir       string `env:"GOPHKEEPER_BASE_DIR"`
 	SyncServerURL string `env:"GOPHKEEPER_SYNC_SERVER_URL" envDefault:":3333"`
 	LogLevel      string `env:"GOPHKEEPER_LOG_LEVEL" envDefault:"info"`
-	SyncPeriod    int64  `env:"GOPHKEEPER_SYNC_PERIOD" envDefault:"5"`
+	SyncPeriod    int64  `env:"GOPHKEEPER_SYNC_PERIOD" envDefault:"100"`
 }
 
 func (c *ClientConfig) populateEmptyFields(another ClientConfig) {
@@ -28,7 +28,7 @@ func (c *ClientConfig) populateEmptyFields(another ClientConfig) {
 	}
 }
 
-// LoadClientConfig reads environment variables and flags, prior to flags
+// LoadClientConfig reads environment variables and flags, prior to flags.
 func LoadClientConfig() (ClientConfig, error) {
 
 	var mainConfig ClientConfig

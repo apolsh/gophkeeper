@@ -12,7 +12,7 @@ import (
 
 var _ SecretItem = (*TextSecretItem)(nil)
 
-// TextSecretItem binary implementation of SecretItem
+// TextSecretItem binary implementation of SecretItem.
 type TextSecretItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -20,12 +20,12 @@ type TextSecretItem struct {
 	Text        string `json:"text"`
 }
 
-// GetSecretPayload returns text implementation of secret item payload
+// GetSecretPayload returns text implementation of secret item payload.
 func (c *TextSecretItem) GetSecretPayload() string {
 	return fmt.Sprintf("[TEXT]: %s \n", c.Text)
 }
 
-// NewEncodedSecret encodes secret item
+// NewEncodedSecret encodes secret item.
 func (c *TextSecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []byte) ([]byte, error), ownerID int64) (EncodedSecret, error) {
 	jsonBytes, err := json.Marshal(c)
 	if err != nil {
@@ -50,7 +50,7 @@ func (c *TextSecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []byt
 	return encodedSecret, nil
 }
 
-// DecodeTextSecretItem decodes EncodedSecret item into TextSecretItem
+// DecodeTextSecretItem decodes EncodedSecret item into TextSecretItem.
 func DecodeTextSecretItem(decode func(byteToEncode []byte) ([]byte, error), encoded EncodedSecret) (*TextSecretItem, error) {
 	var textSecret TextSecretItem
 	decodedBytes, err := decode(encoded.EncodedContent)
@@ -64,7 +64,7 @@ func DecodeTextSecretItem(decode func(byteToEncode []byte) ([]byte, error), enco
 	return &textSecret, nil
 }
 
-// NewTextSecretItem TextSecretItem constructor
+// NewTextSecretItem TextSecretItem constructor.
 func NewTextSecretItem(name, description, text string) *TextSecretItem {
 	return &TextSecretItem{
 		Name:        name,
@@ -74,7 +74,7 @@ func NewTextSecretItem(name, description, text string) *TextSecretItem {
 	}
 }
 
-// GetType returns secret item type
+// GetType returns secret item type.
 func (c *TextSecretItem) GetType() string {
 	return c.SecretType
 }

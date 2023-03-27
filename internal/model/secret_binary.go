@@ -14,7 +14,7 @@ import (
 
 var _ SecretItem = (*BinarySecretItem)(nil)
 
-// BinarySecretItem binary implementation of SecretItem
+// BinarySecretItem binary implementation of SecretItem.
 type BinarySecretItem struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
@@ -24,7 +24,7 @@ type BinarySecretItem struct {
 	outputPath  string
 }
 
-// GetSecretPayload returns text implementation of secret item payload
+// GetSecretPayload returns text implementation of secret item payload.
 func (c *BinarySecretItem) GetSecretPayload() string {
 	var output string
 	var outputDirPath string
@@ -43,7 +43,7 @@ func (c *BinarySecretItem) GetSecretPayload() string {
 	return fmt.Sprintf("[Binary]: %s \n", output)
 }
 
-// NewEncodedSecret encodes secret item
+// NewEncodedSecret encodes secret item.
 func (c *BinarySecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []byte) ([]byte, error), ownerID int64) (EncodedSecret, error) {
 	jsonBytes, err := json.Marshal(c)
 	if err != nil {
@@ -68,12 +68,12 @@ func (c *BinarySecretItem) NewEncodedSecret(encodeFunction func(byteToDecode []b
 	return encodedSecret, nil
 }
 
-// GetType returns secret item type
+// GetType returns secret item type.
 func (c *BinarySecretItem) GetType() string {
 	return c.SecretType
 }
 
-// DecodeBinarySecretItem decodes EncodedSecret item into BinarySecretItem
+// DecodeBinarySecretItem decodes EncodedSecret item into BinarySecretItem.
 func DecodeBinarySecretItem(decode func(byteToEncode []byte) ([]byte, error), encoded EncodedSecret) (*BinarySecretItem, error) {
 	var binarySecret BinarySecretItem
 	decodedBytes, err := decode(encoded.EncodedContent)
@@ -87,7 +87,7 @@ func DecodeBinarySecretItem(decode func(byteToEncode []byte) ([]byte, error), en
 	return &binarySecret, nil
 }
 
-// NewBinarySecretItem BinarySecretItem constructor
+// NewBinarySecretItem BinarySecretItem constructor.
 func NewBinarySecretItem(name, description, path string) (*BinarySecretItem, error) {
 	stats, err := os.Stat(path)
 	if err != nil {
@@ -115,7 +115,7 @@ func NewBinarySecretItem(name, description, path string) (*BinarySecretItem, err
 	}, nil
 }
 
-// SetOutputPath sets output path, uses for decode binary file
+// SetOutputPath sets output path, uses for decode binary file.
 func (c *BinarySecretItem) SetOutputPath(path string) error {
 	err := isCorrectDirectoryPath(path)
 	if err != nil {

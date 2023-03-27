@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"os/signal"
+	"time"
 
 	grpcClient "github.com/apolsh/yapr-gophkeeper/internal/client/backend_client/grpc_client"
 	"github.com/apolsh/yapr-gophkeeper/internal/client/controller"
@@ -12,6 +13,7 @@ import (
 	"github.com/apolsh/yapr-gophkeeper/internal/client/view"
 	"github.com/apolsh/yapr-gophkeeper/internal/config"
 	"github.com/apolsh/yapr-gophkeeper/internal/logger"
+	"github.com/apolsh/yapr-gophkeeper/internal/misc/scheduler"
 )
 
 var (
@@ -22,8 +24,8 @@ var (
 	log = logger.LoggerOfComponent("client-main")
 )
 
-// buildVersion - версия сборки
-// buildDate - дата сборки
+// buildVersion - версия сборки.
+// buildDate - дата сборки.
 // buildCommit - комментарий сборки.
 func main() {
 	log.Info("Build version: ", buildVersion)
@@ -42,11 +44,6 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt)
 
-	defer func() {
-		signal.Stop(sigChan)
-		cancel()
-	}()
-
 	go func(ctx context.Context) {
 		select {
 		case <-sigChan:
@@ -61,10 +58,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	controller.NewGophkeeperController(ctx, &menu, &serverClient, localStorage, &encoder.AESGMCEncoder{}, cfg.SyncPeriod)
+	ctrl := controller.NewGophkeeperController(&menu, &serverClient, localStorage, &encoder.AESGMCEncoder{})
+	synchronization := scheduler.NewScheduler(ctrl.SynchronizeSecretItems, menu.ShowError)
+	synchronization.RunWithInterval(ctx, time.Duration(cfg.SyncPeriod)*time.Second)
+
 	err = menu.Show(ctx)
 	if err != nil {
 		log.Error(err)
 	}
 
+	synchronization.Close()
 }

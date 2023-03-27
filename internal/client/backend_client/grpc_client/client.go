@@ -17,7 +17,7 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-// GophkeeperGRPCClient client for grpc interactions with backend
+// GophkeeperGRPCClient client for grpc interactions with backend.
 type GophkeeperGRPCClient struct {
 	client     pb.GophkeeperClient
 	authConfig *authConfig
@@ -27,7 +27,7 @@ var _ controller.BackendClient = (*GophkeeperGRPCClient)(nil)
 
 var log = logger.LoggerOfComponent("grpc_client")
 
-// NewGophkeeperGRPCClient GophkeeperGRPCClient constructor
+// NewGophkeeperGRPCClient GophkeeperGRPCClient constructor.
 func NewGophkeeperGRPCClient(serverURL string) GophkeeperGRPCClient {
 	authConfig := &authConfig{token: "", authMethods: pb.DefaultAuthMethods}
 	conn, err := grpc.Dial(
@@ -44,12 +44,12 @@ func NewGophkeeperGRPCClient(serverURL string) GophkeeperGRPCClient {
 	return GophkeeperGRPCClient{client: client, authConfig: authConfig}
 }
 
-// SetAuthTokenForRequests sets authorization token for this client (add it to every required auth request)
+// SetAuthTokenForRequests sets authorization token for this client (add it to every required auth request).
 func (c *GophkeeperGRPCClient) SetAuthTokenForRequests(token string) {
 	c.authConfig.token = token
 }
 
-// Login login user
+// Login login user.
 func (c *GophkeeperGRPCClient) Login(ctx context.Context, login, password string) (string, model.User, error) {
 	authMeta, err := c.client.Login(ctx, &pb.Credentials{Login: login, Password: password})
 	if err != nil {
@@ -60,7 +60,7 @@ func (c *GophkeeperGRPCClient) Login(ctx context.Context, login, password string
 	return authMeta.GetToken(), user, nil
 }
 
-// Register registers user
+// Register registers user.
 func (c *GophkeeperGRPCClient) Register(ctx context.Context, login, password string) (string, model.User, error) {
 	authMeta, err := c.client.Register(ctx, &pb.Credentials{Login: login, Password: password})
 	if err != nil {
@@ -71,7 +71,7 @@ func (c *GophkeeperGRPCClient) Register(ctx context.Context, login, password str
 	return authMeta.GetToken(), user, nil
 }
 
-// GetSecretSyncMeta returns metadata for synchronization metadata
+// GetSecretSyncMeta returns metadata for synchronization metadata.
 func (c *GophkeeperGRPCClient) GetSecretSyncMeta(ctx context.Context) ([]dto.SecretSyncMetadata, error) {
 	res, err := c.client.GetSecretSyncMeta(ctx, &emptypb.Empty{})
 	if err != nil {
@@ -85,7 +85,17 @@ func (c *GophkeeperGRPCClient) GetSecretSyncMeta(ctx context.Context) ([]dto.Sec
 	return sycMetas, nil
 }
 
-// GetSecretByID returns EncodedSecret by ID
+// GetSecretSyncMetaByName returns metadata for synchronization metadata for current secret by its name.
+func (c *GophkeeperGRPCClient) GetSecretSyncMetaByName(ctx context.Context, name string) (dto.SecretSyncMetadata, error) {
+	res, err := c.client.GetSecretSyncMetaByName(ctx, &pb.Name{Name: name})
+	if err != nil {
+		log.Error(err)
+		return dto.SecretSyncMetadata{}, handleStatusError(err)
+	}
+	return pb.SecretSyncMetadataFromProto(res), nil
+}
+
+// GetSecretByID returns EncodedSecret by ID.
 func (c *GophkeeperGRPCClient) GetSecretByID(ctx context.Context, id string) (model.EncodedSecret, error) {
 	secret, err := c.client.GetSecret(ctx, &pb.SecretID{SecretID: id})
 	if err != nil {
@@ -95,7 +105,7 @@ func (c *GophkeeperGRPCClient) GetSecretByID(ctx context.Context, id string) (mo
 	return pb.EncodedSecretFromProto(secret), nil
 }
 
-// SaveEncodedSecret saves EncodedSecret
+// SaveEncodedSecret saves EncodedSecret.
 func (c *GophkeeperGRPCClient) SaveEncodedSecret(ctx context.Context, encSecret model.EncodedSecret) error {
 	_, err := c.client.SaveEncodedSecret(ctx, pb.EncSecretProtoFromEncSecret(encSecret))
 	if err != nil {
@@ -105,7 +115,7 @@ func (c *GophkeeperGRPCClient) SaveEncodedSecret(ctx context.Context, encSecret 
 	return nil
 }
 
-// DeleteSecret deletes EncodedSecret by ID
+// DeleteSecret deletes EncodedSecret by ID.
 func (c *GophkeeperGRPCClient) DeleteSecret(ctx context.Context, id string) error {
 	_, err := c.client.DeleteSecret(ctx, &pb.SecretID{SecretID: id})
 	if err != nil {

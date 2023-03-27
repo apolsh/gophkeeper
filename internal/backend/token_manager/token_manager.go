@@ -18,17 +18,17 @@ type jwtTokenClaims struct {
 	UserID int64 `json:"user_id"`
 }
 
-// JWTTokenManager token manager jwt implementation
+// JWTTokenManager token manager jwt implementation.
 type JWTTokenManager struct {
 	jwtSecretKey string
 }
 
-// NewJWTTokenManager JWTTokenManager constructor
+// NewJWTTokenManager JWTTokenManager constructor.
 func NewJWTTokenManager(secretKey string) *JWTTokenManager {
 	return &JWTTokenManager{jwtSecretKey: secretKey}
 }
 
-// GenerateToken generates new token
+// GenerateToken generates new token.
 func (s *JWTTokenManager) GenerateToken(id int64) (string, error) {
 	now := time.Now()
 
@@ -43,7 +43,7 @@ func (s *JWTTokenManager) GenerateToken(id int64) (string, error) {
 	return token.SignedString([]byte(s.jwtSecretKey))
 }
 
-// ParseToken parses generated token
+// ParseToken parses generated token.
 func (s *JWTTokenManager) ParseToken(tokenString string) (int64, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwtTokenClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {

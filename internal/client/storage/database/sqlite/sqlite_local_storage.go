@@ -27,12 +27,12 @@ var log = logger.LoggerOfComponent("sqlite-local-storage")
 
 var _ controller.LocalStorage = (*GophkeeperLocalStorageSqlite)(nil)
 
-// GophkeeperLocalStorageSqlite implementation of LocalStorage
+// GophkeeperLocalStorageSqlite implementation of LocalStorage.
 type GophkeeperLocalStorageSqlite struct {
 	db *sql.DB
 }
 
-// NewGophkeeperLocalStorageSqlite GophkeeperLocalStorageSqlite constructor
+// NewGophkeeperLocalStorageSqlite GophkeeperLocalStorageSqlite constructor.
 func NewGophkeeperLocalStorageSqlite(applicationDir string) (*GophkeeperLocalStorageSqlite, error) {
 	databasePath := filepath.Join(applicationDir, databaseName)
 
@@ -58,7 +58,7 @@ func NewGophkeeperLocalStorageSqlite(applicationDir string) (*GophkeeperLocalSto
 	}, nil
 }
 
-// SaveUser saves new user
+// SaveUser saves new user.
 func (g GophkeeperLocalStorageSqlite) SaveUser(ctx context.Context, user model.User) error {
 	q := "INSERT INTO clients (client_id, username, password, date_last_modified) VALUES ($1, $2, $3, $4)"
 	_, err := g.db.ExecContext(ctx, q, user.ID, user.Login, user.HashedPassword, user.Timestamp)
@@ -68,7 +68,7 @@ func (g GophkeeperLocalStorageSqlite) SaveUser(ctx context.Context, user model.U
 	return nil
 }
 
-// UpdateUser update users metadata
+// UpdateUser update users metadata.
 func (g GophkeeperLocalStorageSqlite) UpdateUser(ctx context.Context, user model.User) error {
 	q := "UPDATE clients SET username = $1, password = $2, date_last_modified = $3 WHERE client_id = $4"
 	_, err := g.db.ExecContext(ctx, q, user.Login, user.HashedPassword, user.Timestamp, user.ID)
@@ -78,7 +78,7 @@ func (g GophkeeperLocalStorageSqlite) UpdateUser(ctx context.Context, user model
 	return nil
 }
 
-// GetUserByID returns user by ID
+// GetUserByID returns user by ID.
 func (g GophkeeperLocalStorageSqlite) GetUserByID(ctx context.Context, userID int64) (user model.User, err error) {
 	q := "SELECT client_id, username, password, date_last_modified FROM clients WHERE client_id = $1"
 	row := g.db.QueryRowContext(ctx, q, userID)
@@ -94,7 +94,7 @@ func (g GophkeeperLocalStorageSqlite) GetUserByID(ctx context.Context, userID in
 	return
 }
 
-// GetSecretSyncMetaByID returns metadata for one secret synchronization
+// GetSecretSyncMetaByID returns metadata for one secret synchronization.
 func (g GophkeeperLocalStorageSqlite) GetSecretSyncMetaByID(ctx context.Context, id string) (secretMeta dto.SecretSyncMetadata, err error) {
 	q := "SELECT secret_id, hash, date_last_modified FROM secrets WHERE secret_id = $1"
 	row := g.db.QueryRowContext(ctx, q, id)
@@ -102,7 +102,7 @@ func (g GophkeeperLocalStorageSqlite) GetSecretSyncMetaByID(ctx context.Context,
 	return
 }
 
-// GetSecretSyncMetaByOwnerID returns metadata for all secrets synchronization by user
+// GetSecretSyncMetaByOwnerID returns metadata for all secrets synchronization by user.
 func (g GophkeeperLocalStorageSqlite) GetSecretSyncMetaByOwnerID(ctx context.Context, ownerID int64) ([]dto.SecretSyncMetadata, error) {
 	secretSyncMetas := make([]dto.SecretSyncMetadata, 0, 0)
 
@@ -132,7 +132,7 @@ func (g GophkeeperLocalStorageSqlite) GetSecretSyncMetaByOwnerID(ctx context.Con
 	return secretSyncMetas, nil
 }
 
-// SaveEncodedSecret saves EncodedSecret
+// SaveEncodedSecret saves EncodedSecret.
 func (g GophkeeperLocalStorageSqlite) SaveEncodedSecret(ctx context.Context, encSecret model.EncodedSecret) error {
 	q := "INSERT INTO secrets (secret_id, owner, name, hash, description, enc_data, type, date_last_modified) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 	_, err := g.db.ExecContext(ctx, q, encSecret.ID, encSecret.Owner, encSecret.Name, encSecret.Hash, encSecret.Description, encSecret.EncodedContent, encSecret.Type, encSecret.Timestamp)
@@ -142,7 +142,7 @@ func (g GophkeeperLocalStorageSqlite) SaveEncodedSecret(ctx context.Context, enc
 	return nil
 }
 
-// GetSecretByID returns EncodedSecret by ID
+// GetSecretByID returns EncodedSecret by ID.
 func (g GophkeeperLocalStorageSqlite) GetSecretByID(ctx context.Context, id string) (encSecret model.EncodedSecret, err error) {
 	q := "SELECT secret_id, owner, name, hash, description, enc_data, type, date_last_modified FROM secrets WHERE secret_id = $1"
 	row := g.db.QueryRowContext(ctx, q, id)
@@ -158,7 +158,7 @@ func (g GophkeeperLocalStorageSqlite) GetSecretByID(ctx context.Context, id stri
 	return
 }
 
-// GetAllSecretsItemInfoByUserID returns all secret item info by user id
+// GetAllSecretsItemInfoByUserID returns all secret item info by user id.
 func (g GophkeeperLocalStorageSqlite) GetAllSecretsItemInfoByUserID(ctx context.Context, ownerID int64) ([]dto.SecretItemInfo, error) {
 	secretInfos := make([]dto.SecretItemInfo, 0, 0)
 
@@ -187,7 +187,7 @@ func (g GophkeeperLocalStorageSqlite) GetAllSecretsItemInfoByUserID(ctx context.
 	return secretInfos, nil
 }
 
-// GetSecretByName returns secret by it name
+// GetSecretByName returns secret by it name.
 func (g GophkeeperLocalStorageSqlite) GetSecretByName(ctx context.Context, name string) (encSecret model.EncodedSecret, err error) {
 	q := "SELECT secret_id, owner, name, hash, description, enc_data, type, date_last_modified FROM secrets WHERE name = $1"
 	row := g.db.QueryRowContext(ctx, q, name)
@@ -208,7 +208,7 @@ func (g GophkeeperLocalStorageSqlite) GetSecretByName(ctx context.Context, name 
 	return
 }
 
-// DeleteSecretByName delete secret by it name
+// DeleteSecretByName delete secret by it name.
 func (g GophkeeperLocalStorageSqlite) DeleteSecretByName(ctx context.Context, name string) (id string, err error) {
 	tx, err := g.db.BeginTx(ctx, nil)
 	defer func(tx *sql.Tx) {
