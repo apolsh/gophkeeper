@@ -19,7 +19,6 @@ var DefaultAuthMethods = map[string]bool{
 	servicePath + "GetSecret":               true,
 	servicePath + "SaveEncodedSecret":       true,
 	servicePath + "DeleteSecret":            true,
-	servicePath + "SubscribeOnChange":       true,
 }
 
 // NewUserFromProtoUser convert proto user to model user.

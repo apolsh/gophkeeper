@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 
 	"github.com/apolsh/yapr-gophkeeper/internal/client/controller"
-	"github.com/apolsh/yapr-gophkeeper/internal/client/storage"
 	"github.com/apolsh/yapr-gophkeeper/internal/logger"
 	"github.com/apolsh/yapr-gophkeeper/internal/misc/db"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/mattn/go-sqlite3"
@@ -38,13 +38,11 @@ func NewGophkeeperLocalStorageSqlite(applicationDir string) (*GophkeeperLocalSto
 
 	database, err := sql.Open("sqlite3", databasePath)
 	if err != nil {
-		log.Error(err)
 		return nil, fmt.Errorf(`repository initialization error: %w`, err)
 	}
 
 	migrationSourceDriver, err := iofs.New(fs, "migrations")
 	if err != nil {
-		log.Error(err)
 		return nil, fmt.Errorf(`failed to iniatilise migration source: %w`, err)
 	}
 
@@ -88,7 +86,7 @@ func (g GophkeeperLocalStorageSqlite) GetUserByID(ctx context.Context, userID in
 	err = row.Scan(&user.ID, &user.Login, &user.HashedPassword, &user.Timestamp)
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
-			return model.User{}, storage.ErrorItemNotFound
+			return model.User{}, errs.ErrItemNotFound
 		}
 	}
 	return
@@ -202,7 +200,7 @@ func (g GophkeeperLocalStorageSqlite) GetSecretByName(ctx context.Context, name 
 		&encSecret.Timestamp)
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
-			return model.EncodedSecret{}, storage.ErrorItemNotFound
+			return model.EncodedSecret{}, errs.ErrItemNotFound
 		}
 	}
 	return
@@ -222,7 +220,7 @@ func (g GophkeeperLocalStorageSqlite) DeleteSecretByName(ctx context.Context, na
 	err = row.Scan(&id)
 	if err != nil {
 		if errors.Is(sql.ErrNoRows, err) {
-			return "", storage.ErrorItemNotFound
+			return "", errs.ErrItemNotFound
 		}
 		return
 	}

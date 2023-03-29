@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"unicode"
 
-	"github.com/apolsh/yapr-gophkeeper/internal/client/backend_client"
-	"github.com/apolsh/yapr-gophkeeper/internal/client/storage"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 )
 
@@ -189,7 +188,7 @@ func (c *GophkeeperController) SaveSecret(ctx context.Context, item model.Secret
 	}
 	err = c.remoteStorage.SaveEncodedSecret(ctx, encodedSecret)
 	if err != nil {
-		if !errors.Is(backend_client.ErrServerIsNotAvailable, err) {
+		if !errors.Is(errs.ErrServerIsNotAvailable, err) {
 			c.view.ShowError(fmt.Errorf("synchronization operation failed: %w", err))
 		}
 		c.view.ShowError(err)
@@ -219,7 +218,7 @@ func (c *GophkeeperController) GetSecret(ctx context.Context, name string) {
 
 	localEncSecret, err := c.localStorage.GetSecretByName(ctx, name)
 	if err != nil && syncErr != nil {
-		if errors.Is(storage.ErrorItemNotFound, err) {
+		if errors.Is(errs.ErrItemNotFound, err) {
 			c.view.ShowError(fmt.Errorf("secret with name \"%s\" not found", name))
 			return
 		}
@@ -268,7 +267,7 @@ func (c *GophkeeperController) GetSecret(ctx context.Context, name string) {
 func (c *GophkeeperController) DeleteSecret(ctx context.Context, name string) {
 	id, err := c.localStorage.DeleteSecretByName(ctx, name)
 	if err != nil {
-		if errors.Is(storage.ErrorItemNotFound, err) {
+		if errors.Is(errs.ErrItemNotFound, err) {
 			c.view.ShowError(fmt.Errorf("secret with name \"%s\" not found", name))
 			return
 		}
@@ -277,7 +276,7 @@ func (c *GophkeeperController) DeleteSecret(ctx context.Context, name string) {
 	}
 	err = c.remoteStorage.DeleteSecret(ctx, id)
 	if err != nil {
-		if !errors.Is(backend_client.ErrServerIsNotAvailable, err) {
+		if !errors.Is(errs.ErrServerIsNotAvailable, err) {
 			c.view.ShowError(fmt.Errorf("synchronization operation failed: %w", err))
 		}
 		c.view.ShowError(err)
@@ -326,7 +325,7 @@ func passwordValidation(password, repeatedPassword string) error {
 func (c *GophkeeperController) synchronizeAuthMeta(ctx context.Context, user model.User) error {
 	localUser, err := c.localStorage.GetUserByID(ctx, user.ID)
 	if err != nil {
-		if errors.Is(storage.ErrorItemNotFound, err) {
+		if errors.Is(errs.ErrItemNotFound, err) {
 			return c.localStorage.SaveUser(ctx, user)
 		}
 		return err

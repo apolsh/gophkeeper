@@ -15,7 +15,6 @@ service Gophkeeper {
   rpc GetSecret(SecretID) returns (EncodedSecret);
   rpc SaveEncodedSecret(EncodedSecret) returns (google.protobuf.Empty);
   rpc DeleteSecret(SecretID) returns (google.protobuf.Empty);
-  rpc SubscribeOnChange(google.protobuf.Empty) returns (stream ChangeEvent);
 }
 
 message Credentials {

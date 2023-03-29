@@ -3,19 +3,21 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"net"
 	"strconv"
 
 	"github.com/apolsh/yapr-gophkeeper/internal/backend/service"
-	"github.com/apolsh/yapr-gophkeeper/internal/backend/storage"
 	tokenManager "github.com/apolsh/yapr-gophkeeper/internal/backend/token_manager"
 	pb "github.com/apolsh/yapr-gophkeeper/internal/grpc/proto"
 	"github.com/apolsh/yapr-gophkeeper/internal/logger"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -67,6 +69,28 @@ func (s *GRPCGophkeeperServer) Start() error {
 	return grpcServer.Serve(listen)
 }
 
+// StartTLS запускает сервер с TLS шифрованием.
+func (s *GRPCGophkeeperServer) StartTLS(cfg *tls.Config) error {
+	tlsCreds := credentials.NewTLS(cfg)
+
+	listen, err := net.Listen("tcp", s.addr)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	grpcServer := grpc.NewServer(
+		grpc.UnaryInterceptor(unaryAuthInterceptor(s.tokenManager, s.authMethods)),
+		grpc.StreamInterceptor(streamAuthInterceptor(s.tokenManager, s.authMethods)),
+		grpc.Creds(tlsCreds),
+	)
+
+	s.Server = grpcServer
+
+	pb.RegisterGophkeeperServer(grpcServer, &gophkeeperGRPCHandler{service: s.service})
+
+	return grpcServer.Serve(listen)
+}
+
 // Stop stops server.
 func (s *GRPCGophkeeperServer) Stop(_ context.Context) error {
 	s.Server.GracefulStop()
@@ -88,7 +112,7 @@ func (s *gophkeeperGRPCHandler) Login(ctx context.Context, credentials *pb.Crede
 	token, user, err := s.service.Login(ctx, credentials.Login, credentials.Password)
 	if err != nil {
 		log.Error(err)
-		if errors.Is(service.ErrorInvalidPassword, err) || errors.Is(service.ErrorEmptyValue, err) || errors.Is(service.ErrUserNotFound, err) {
+		if errors.Is(errs.ErrorInvalidPassword, err) || errors.Is(errs.ErrorEmptyValue, err) || errors.Is(service.ErrUserNotFound, err) {
 			return nil, status.Errorf(codes.Unauthenticated, err.Error())
 		}
 		return nil, err
@@ -101,10 +125,10 @@ func (s *gophkeeperGRPCHandler) Register(ctx context.Context, credentials *pb.Cr
 	token, user, err := s.service.Register(ctx, credentials.Login, credentials.Password)
 	if err != nil {
 		log.Error(err)
-		if errors.Is(service.ErrorEmptyValue, err) {
+		if errors.Is(errs.ErrorEmptyValue, err) {
 			return nil, status.Errorf(codes.Unauthenticated, err.Error())
 		}
-		if errors.Is(storage.ErrorLoginIsAlreadyUsed, err) {
+		if errors.Is(errs.ErrorLoginIsAlreadyUsed, err) {
 			return nil, status.Errorf(codes.AlreadyExists, err.Error())
 		}
 	}

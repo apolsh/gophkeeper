@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/apolsh/yapr-gophkeeper/internal/backend/storage"
 	tokenManager "github.com/apolsh/yapr-gophkeeper/internal/backend/token_manager"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -30,11 +30,11 @@ type SecretStorage interface {
 	// GetSecretSyncMetaByOwnerAndName returns metadata for secret synchronization by ownerID and secret name
 	GetSecretSyncMetaByOwnerAndName(ctx context.Context, userID int, name string) (dto.SecretSyncMetadata, error)
 	// GetSecretByID returns EncodedSecret by ID
-	GetSecretByID(ctx context.Context, secretID string) (model.EncodedSecret, error)
+	GetSecretByID(ctx context.Context, userID int, secretID string) (model.EncodedSecret, error)
 	// SaveEncodedSecret saves EncodedSecret
 	SaveEncodedSecret(ctx context.Context, secret model.EncodedSecret) error
 	// DeleteEncodedSecret deletes EncodedSecret
-	DeleteEncodedSecret(ctx context.Context, secretID string) error
+	DeleteEncodedSecret(ctx context.Context, ownerID int, secretID string) error
 	// Close for graceful shutdown
 	Close()
 }
@@ -65,18 +65,18 @@ func NewGophkeeperService(tokenManager tokenManager.TokenManager, userStorage Us
 // Login login user.
 func (s *GophkeeperServiceImpl) Login(ctx context.Context, login string, password string) (string, model.User, error) {
 	if login == "" || password == "" {
-		return "", model.User{}, ErrorEmptyValue
+		return "", model.User{}, errs.ErrorEmptyValue
 	}
 	user, err := s.userStorage.GetUserByLogin(ctx, login)
 	if err != nil {
-		if errors.Is(storage.ErrItemNotFound, err) {
+		if errors.Is(errs.ErrItemNotFound, err) {
 			return "", model.User{}, ErrUserNotFound
 		}
 		return "", model.User{}, err
 	}
 	err = bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(password))
 	if err != nil {
-		return "", model.User{}, ErrorInvalidPassword
+		return "", model.User{}, errs.ErrorInvalidPassword
 	}
 
 	token, err := s.tokenManager.GenerateToken(user.ID)
@@ -90,7 +90,7 @@ func (s *GophkeeperServiceImpl) Login(ctx context.Context, login string, passwor
 // Register register user.
 func (s *GophkeeperServiceImpl) Register(ctx context.Context, login string, password string) (string, model.User, error) {
 	if login == "" || password == "" {
-		return "", model.User{}, ErrorEmptyValue
+		return "", model.User{}, errs.ErrorEmptyValue
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -122,12 +122,9 @@ func (s *GophkeeperServiceImpl) GetSecretSyncMetaByOwnerAndName(ctx context.Cont
 
 // GetSecret returns EncodedSecret by ID
 func (s *GophkeeperServiceImpl) GetSecret(ctx context.Context, userID int, secretID string) (model.EncodedSecret, error) {
-	encodedSecret, err := s.secretStorage.GetSecretByID(ctx, secretID)
+	encodedSecret, err := s.secretStorage.GetSecretByID(ctx, userID, secretID)
 	if err != nil {
 		return model.EncodedSecret{}, err
-	}
-	if encodedSecret.Owner != int64(userID) {
-		return model.EncodedSecret{}, ErrOwnerMissmatch
 	}
 	return encodedSecret, nil
 }
@@ -143,14 +140,5 @@ func (s *GophkeeperServiceImpl) SaveEncodedSecret(ctx context.Context, ownerID i
 
 // DeleteSecret delete EncodedSecret by ID.
 func (s *GophkeeperServiceImpl) DeleteSecret(ctx context.Context, ownerID int, secretID string) error {
-	encodedSecret, err := s.secretStorage.GetSecretByID(ctx, secretID)
-	if err != nil {
-		return fmt.Errorf("failed to check stored secret rights: %w", err)
-	}
-
-	if int64(ownerID) != encodedSecret.Owner {
-		return ErrOwnerMissmatch
-	}
-
-	return s.secretStorage.DeleteEncodedSecret(ctx, secretID)
+	return s.secretStorage.DeleteEncodedSecret(ctx, ownerID, secretID)
 }

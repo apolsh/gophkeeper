@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -9,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	tslUtils "github.com/apolsh/yapr-gophkeeper/cmd/gophkeeper/tls"
 	grpc "github.com/apolsh/yapr-gophkeeper/internal/backend/server"
 	"github.com/apolsh/yapr-gophkeeper/internal/backend/service"
 	"github.com/apolsh/yapr-gophkeeper/internal/backend/storage/database/postgres"
@@ -28,6 +31,7 @@ var (
 // Server базовый интерфейс для серверов различного типа.
 type Server interface {
 	Start() error
+	StartTLS(config *tls.Config) error
 	Stop(ctx context.Context) error
 }
 
@@ -89,9 +93,20 @@ func main() {
 		close(done)
 	}()
 
-	err := grpcServer.Start()
-	if err != nil {
-		log.Fatal(fmt.Errorf("could not start grpc server: %v", err))
+	var serverStartErr error
+	if cfg.HTTPSEnabled {
+		tlsConfig, err := tslUtils.GetTLSConfig()
+		if err != nil {
+			log.Fatal(fmt.Errorf("could not get TLS configs %v", err))
+		}
+
+		serverStartErr = grpcServer.StartTLS(tlsConfig)
+	} else {
+		serverStartErr = grpcServer.Start()
+	}
+
+	if serverStartErr != nil {
+		log.Fatal(fmt.Errorf("could not start grpc server: %v", serverStartErr))
 		quit <- syscall.SIGQUIT
 	}
 

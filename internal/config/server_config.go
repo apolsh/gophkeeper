@@ -17,6 +17,7 @@ type ServerConfig struct {
 	Storage        string `env:"STORAGE" envDefault:"postgres"`
 	LogLevel       string `env:"LOG_LEVEL" envDefault:"info"`
 	TokenSecretKey string `env:"TOKEN_SECRET_KEY" envDefault:"secret"`
+	HTTPSEnabled   bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 }
 
 func (c *ServerConfig) populateEmptyFields(another ServerConfig) {
@@ -32,6 +33,9 @@ func (c *ServerConfig) populateEmptyFields(another ServerConfig) {
 	if c.TokenSecretKey == "" && another.TokenSecretKey != "" {
 		c.TokenSecretKey = another.TokenSecretKey
 	}
+	if !c.HTTPSEnabled && another.HTTPSEnabled {
+		c.HTTPSEnabled = another.HTTPSEnabled
+	}
 }
 
 // LoadServerConfig reads environment variables and flags, prior to flags.
@@ -43,6 +47,7 @@ func LoadServerConfig() ServerConfig {
 	flag.StringVar(&mainConfig.ServerAddr, "a", "", "GRPC server address")
 	flag.StringVar(&mainConfig.Storage, "st", "", "storage type (postgres)")
 	flag.StringVar(&mainConfig.TokenSecretKey, "s", "", "secret key for token generator")
+	flag.BoolVar(&mainConfig.HTTPSEnabled, "t", true, "enable HTTPS with self signed certificate")
 
 	flag.Parse()
 

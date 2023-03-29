@@ -1,4 +1,4 @@
-package storage
+package app_errors
 
 import (
 	"errors"

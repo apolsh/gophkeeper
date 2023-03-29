@@ -8,10 +8,9 @@ import (
 	"time"
 
 	"github.com/apolsh/yapr-gophkeeper/internal/backend/service"
-	"github.com/apolsh/yapr-gophkeeper/internal/backend/storage"
-	"github.com/apolsh/yapr-gophkeeper/internal/logger"
 	"github.com/apolsh/yapr-gophkeeper/internal/misc/db"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgconn"
@@ -26,8 +25,6 @@ const (
 	constraintUniqUsername = "clients_username_key"
 )
 
-var log = logger.LoggerOfComponent("pg-storage")
-
 //go:embed migrations/*.sql
 var fs embed.FS
 
@@ -40,12 +37,10 @@ type GophkeeperStoragePG struct {
 func NewGophkeeperStoragePG(databaseDSN string) (*GophkeeperStoragePG, error) {
 	conn, err := pgxpool.Connect(context.Background(), databaseDSN)
 	if err != nil {
-		log.Error(err)
 		return nil, fmt.Errorf(`repository initialization error: %w`, err)
 	}
 	migrationSourceDriver, err := iofs.New(fs, "migrations")
 	if err != nil {
-		log.Error(err)
 		return nil, fmt.Errorf(`failed to iniatilise migration source: %w`, err)
 	}
 
@@ -70,10 +65,10 @@ func (s *GophkeeperStoragePG) NewUser(ctx context.Context, login string, hashedP
 	if err != nil {
 		if errors.As(err, &pgErr) {
 			if pgErr.ConstraintName == constraintUniqUsername {
-				return model.User{}, storage.ErrorLoginIsAlreadyUsed
+				return model.User{}, errs.ErrorLoginIsAlreadyUsed
 			}
 		}
-		log.Error(err)
+		return model.User{}, errs.HandleUnknownDatabaseError(err)
 	}
 
 	return model.User{ID: id, Login: login, HashedPassword: hashedPassword, Timestamp: timestamp}, nil
@@ -86,10 +81,9 @@ func (s *GophkeeperStoragePG) GetUserByLogin(ctx context.Context, login string) 
 	err := s.db.QueryRow(ctx, q, login).Scan(&user.ID, &user.Login, &user.HashedPassword)
 	if err != nil {
 		if errors.Is(pgx.ErrNoRows, err) {
-			return model.User{}, storage.ErrItemNotFound
+			return model.User{}, errs.ErrItemNotFound
 		}
-		log.Error(err)
-		return model.User{}, storage.HandleUnknownDatabaseError(err)
+		return model.User{}, errs.HandleUnknownDatabaseError(err)
 	}
 	return user, nil
 }
@@ -100,7 +94,7 @@ func (s *GophkeeperStoragePG) GetSecretSyncMetaByUser(ctx context.Context, userI
 
 	rows, err := s.db.Query(ctx, q, userID)
 	if err != nil {
-		return nil, storage.HandleUnknownDatabaseError(err)
+		return nil, errs.HandleUnknownDatabaseError(err)
 	}
 
 	secretSyncMetas := make([]dto.SecretSyncMetadata, 0)
@@ -108,7 +102,7 @@ func (s *GophkeeperStoragePG) GetSecretSyncMetaByUser(ctx context.Context, userI
 	for rows.Next() {
 		err := rows.Scan(&secretSyncMeta.ID, &secretSyncMeta.Hash, &secretSyncMeta.Timestamp)
 		if err != nil {
-			return nil, storage.HandleUnknownDatabaseError(err)
+			return nil, errs.HandleUnknownDatabaseError(err)
 		}
 		secretSyncMetas = append(secretSyncMetas, secretSyncMeta)
 	}
@@ -122,18 +116,18 @@ func (s *GophkeeperStoragePG) GetSecretSyncMetaByOwnerAndName(ctx context.Contex
 	var secretSyncMeta dto.SecretSyncMetadata
 	err := s.db.QueryRow(ctx, q, userID, name).Scan(&secretSyncMeta.ID, &secretSyncMeta.Hash, &secretSyncMeta.Timestamp)
 	if err != nil {
-		return secretSyncMeta, storage.HandleUnknownDatabaseError(err)
+		return secretSyncMeta, errs.HandleUnknownDatabaseError(err)
 	}
 	return secretSyncMeta, nil
 }
 
 // GetSecretByID returns EncodedSecret by ID.
-func (s *GophkeeperStoragePG) GetSecretByID(ctx context.Context, secretID string) (model.EncodedSecret, error) {
-	q := "SELECT secret_id, owner, name, hash, description, enc_data, type, date_last_modified FROM secrets WHERE secret_id = $1"
+func (s *GophkeeperStoragePG) GetSecretByID(ctx context.Context, userID int, secretID string) (model.EncodedSecret, error) {
+	q := "SELECT secret_id, owner, name, hash, description, enc_data, type, date_last_modified FROM secrets WHERE secret_id = $1 AND owner = $2"
 
 	var encSecret model.EncodedSecret
 
-	err := s.db.QueryRow(ctx, q, secretID).Scan(
+	err := s.db.QueryRow(ctx, q, secretID, userID).Scan(
 		&encSecret.ID,
 		&encSecret.Owner,
 		&encSecret.Name,
@@ -145,9 +139,9 @@ func (s *GophkeeperStoragePG) GetSecretByID(ctx context.Context, secretID string
 
 	if err != nil {
 		if errors.Is(pgx.ErrNoRows, err) {
-			return model.EncodedSecret{}, storage.ErrItemNotFound
+			return model.EncodedSecret{}, errs.ErrItemNotFound
 		}
-		return model.EncodedSecret{}, storage.HandleUnknownDatabaseError(err)
+		return model.EncodedSecret{}, errs.HandleUnknownDatabaseError(err)
 	}
 	return encSecret, nil
 }
@@ -158,18 +152,18 @@ func (s *GophkeeperStoragePG) SaveEncodedSecret(ctx context.Context, secret mode
 
 	_, err := s.db.Exec(ctx, q, secret.ID, secret.Owner, secret.Name, secret.Hash, secret.Description, secret.EncodedContent, secret.Type, secret.Timestamp)
 	if err != nil {
-		return storage.HandleUnknownDatabaseError(err)
+		return errs.HandleUnknownDatabaseError(err)
 	}
 
 	return nil
 }
 
 // DeleteEncodedSecret deletes EncodedSecret.
-func (s *GophkeeperStoragePG) DeleteEncodedSecret(ctx context.Context, secretID string) error {
-	q := "DELETE FROM secrets WHERE secret_id = $1"
-	_, err := s.db.Exec(ctx, q, secretID)
+func (s *GophkeeperStoragePG) DeleteEncodedSecret(ctx context.Context, ownerID int, secretID string) error {
+	q := "DELETE FROM secrets WHERE secret_id = $1 AND owner = $2"
+	_, err := s.db.Exec(ctx, q, secretID, ownerID)
 	if err != nil {
-		return storage.HandleUnknownDatabaseError(err)
+		return errs.HandleUnknownDatabaseError(err)
 	}
 
 	return nil

@@ -30,7 +30,6 @@ type GophkeeperClient interface {
 	GetSecret(ctx context.Context, in *SecretID, opts ...grpc.CallOption) (*EncodedSecret, error)
 	SaveEncodedSecret(ctx context.Context, in *EncodedSecret, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeleteSecret(ctx context.Context, in *SecretID, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	SubscribeOnChange(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Gophkeeper_SubscribeOnChangeClient, error)
 }
 
 type gophkeeperClient struct {
@@ -104,38 +103,6 @@ func (c *gophkeeperClient) DeleteSecret(ctx context.Context, in *SecretID, opts 
 	return out, nil
 }
 
-func (c *gophkeeperClient) SubscribeOnChange(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (Gophkeeper_SubscribeOnChangeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Gophkeeper_ServiceDesc.Streams[0], "/proto.Gophkeeper/SubscribeOnChange", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &gophkeeperSubscribeOnChangeClient{stream}
-	if err := x.ClientStream.SendMsg(in); err != nil {
-		return nil, err
-	}
-	if err := x.ClientStream.CloseSend(); err != nil {
-		return nil, err
-	}
-	return x, nil
-}
-
-type Gophkeeper_SubscribeOnChangeClient interface {
-	Recv() (*ChangeEvent, error)
-	grpc.ClientStream
-}
-
-type gophkeeperSubscribeOnChangeClient struct {
-	grpc.ClientStream
-}
-
-func (x *gophkeeperSubscribeOnChangeClient) Recv() (*ChangeEvent, error) {
-	m := new(ChangeEvent)
-	if err := x.ClientStream.RecvMsg(m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
 // GophkeeperServer is the server API for Gophkeeper service.
 // All implementations must embed UnimplementedGophkeeperServer
 // for forward compatibility
@@ -147,7 +114,6 @@ type GophkeeperServer interface {
 	GetSecret(context.Context, *SecretID) (*EncodedSecret, error)
 	SaveEncodedSecret(context.Context, *EncodedSecret) (*emptypb.Empty, error)
 	DeleteSecret(context.Context, *SecretID) (*emptypb.Empty, error)
-	SubscribeOnChange(*emptypb.Empty, Gophkeeper_SubscribeOnChangeServer) error
 	mustEmbedUnimplementedGophkeeperServer()
 }
 
@@ -175,9 +141,6 @@ func (UnimplementedGophkeeperServer) SaveEncodedSecret(context.Context, *Encoded
 }
 func (UnimplementedGophkeeperServer) DeleteSecret(context.Context, *SecretID) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteSecret not implemented")
-}
-func (UnimplementedGophkeeperServer) SubscribeOnChange(*emptypb.Empty, Gophkeeper_SubscribeOnChangeServer) error {
-	return status.Errorf(codes.Unimplemented, "method SubscribeOnChange not implemented")
 }
 func (UnimplementedGophkeeperServer) mustEmbedUnimplementedGophkeeperServer() {}
 
@@ -318,27 +281,6 @@ func _Gophkeeper_DeleteSecret_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Gophkeeper_SubscribeOnChange_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(GophkeeperServer).SubscribeOnChange(m, &gophkeeperSubscribeOnChangeServer{stream})
-}
-
-type Gophkeeper_SubscribeOnChangeServer interface {
-	Send(*ChangeEvent) error
-	grpc.ServerStream
-}
-
-type gophkeeperSubscribeOnChangeServer struct {
-	grpc.ServerStream
-}
-
-func (x *gophkeeperSubscribeOnChangeServer) Send(m *ChangeEvent) error {
-	return x.ServerStream.SendMsg(m)
-}
-
 // Gophkeeper_ServiceDesc is the grpc.ServiceDesc for Gophkeeper service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -375,12 +317,6 @@ var Gophkeeper_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Gophkeeper_DeleteSecret_Handler,
 		},
 	},
-	Streams: []grpc.StreamDesc{
-		{
-			StreamName:    "SubscribeOnChange",
-			Handler:       _Gophkeeper_SubscribeOnChange_Handler,
-			ServerStreams: true,
-		},
-	},
+	Streams:  []grpc.StreamDesc{},
 	Metadata: "gophkeeper.proto",
 }

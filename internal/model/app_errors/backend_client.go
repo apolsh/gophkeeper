@@ -1,4 +1,4 @@
-package backend_client
+package app_errors
 
 import "errors"
 

@@ -2,10 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"os/signal"
 	"time"
 
+	"github.com/apolsh/yapr-gophkeeper/cmd/gophkeeper/tls"
 	grpcClient "github.com/apolsh/yapr-gophkeeper/internal/client/backend_client/grpc_client"
 	"github.com/apolsh/yapr-gophkeeper/internal/client/controller"
 	"github.com/apolsh/yapr-gophkeeper/internal/client/encoder"
@@ -14,6 +16,7 @@ import (
 	"github.com/apolsh/yapr-gophkeeper/internal/config"
 	"github.com/apolsh/yapr-gophkeeper/internal/logger"
 	"github.com/apolsh/yapr-gophkeeper/internal/misc/scheduler"
+	"google.golang.org/grpc/credentials"
 )
 
 var (
@@ -53,12 +56,23 @@ func main() {
 	}(ctx)
 
 	menu := view.GophkeeperViewInteractiveCLI{}
-	serverClient := grpcClient.NewGophkeeperGRPCClient(cfg.SyncServerURL)
+	var serverClient controller.BackendClient
+	if cfg.HTTPSEnabled {
+		tlsConfig, err := tls.GetTLSConfig()
+		if err != nil {
+			log.Fatal(fmt.Errorf("could not get TLS configs %v", err))
+		}
+
+		serverClient = grpcClient.NewGophkeeperGRPCClientTLS(cfg.SyncServerURL, credentials.NewTLS(tlsConfig))
+	} else {
+		serverClient = grpcClient.NewGophkeeperGRPCClient(cfg.SyncServerURL)
+	}
+
 	localStorage, err := sqlite.NewGophkeeperLocalStorageSqlite(cfg.BaseDir)
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctrl := controller.NewGophkeeperController(&menu, &serverClient, localStorage, &encoder.AESGMCEncoder{})
+	ctrl := controller.NewGophkeeperController(&menu, serverClient, localStorage, &encoder.AESGMCEncoder{})
 	synchronization := scheduler.NewScheduler(ctrl.SynchronizeSecretItems, menu.ShowError)
 	synchronization.RunWithInterval(ctx, time.Duration(cfg.SyncPeriod)*time.Second)
 

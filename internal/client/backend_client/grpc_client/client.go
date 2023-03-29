@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 
-	"github.com/apolsh/yapr-gophkeeper/internal/client/backend_client"
 	"github.com/apolsh/yapr-gophkeeper/internal/client/controller"
 	pb "github.com/apolsh/yapr-gophkeeper/internal/grpc/proto"
 	"github.com/apolsh/yapr-gophkeeper/internal/logger"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -28,8 +29,9 @@ var _ controller.BackendClient = (*GophkeeperGRPCClient)(nil)
 var log = logger.LoggerOfComponent("grpc_client")
 
 // NewGophkeeperGRPCClient GophkeeperGRPCClient constructor.
-func NewGophkeeperGRPCClient(serverURL string) GophkeeperGRPCClient {
+func NewGophkeeperGRPCClient(serverURL string) *GophkeeperGRPCClient {
 	authConfig := &authConfig{token: "", authMethods: pb.DefaultAuthMethods}
+
 	conn, err := grpc.Dial(
 		serverURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -41,7 +43,25 @@ func NewGophkeeperGRPCClient(serverURL string) GophkeeperGRPCClient {
 	}
 	client := pb.NewGophkeeperClient(conn)
 
-	return GophkeeperGRPCClient{client: client, authConfig: authConfig}
+	return &GophkeeperGRPCClient{client: client, authConfig: authConfig}
+}
+
+// NewGophkeeperGRPCClientTLS GophkeeperGRPCClient constructor with TLS.
+func NewGophkeeperGRPCClientTLS(serverURL string, creds credentials.TransportCredentials) *GophkeeperGRPCClient {
+	authConfig := &authConfig{token: "", authMethods: pb.DefaultAuthMethods}
+
+	conn, err := grpc.Dial(
+		serverURL,
+		grpc.WithTransportCredentials(creds),
+		grpc.WithUnaryInterceptor(unaryAuthInterceptor(authConfig)),
+		grpc.WithStreamInterceptor(streamAuthInterceptor(authConfig)),
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+	client := pb.NewGophkeeperClient(conn)
+
+	return &GophkeeperGRPCClient{client: client, authConfig: authConfig}
 }
 
 // SetAuthTokenForRequests sets authorization token for this client (add it to every required auth request).
@@ -131,7 +151,7 @@ func handleStatusError(err error) error {
 			return errors.New(s.Message())
 		}
 		if s.Code() == codes.Unavailable {
-			return backend_client.ErrServerIsNotAvailable
+			return errs.ErrServerIsNotAvailable
 		}
 	}
 	return err
