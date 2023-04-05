@@ -1,0 +1,95 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/apolsh/yapr-gophkeeper/proto";
+
+import "google/protobuf/empty.proto";
+
+
+service Gophkeeper {
+  rpc Login(Credentials) returns (AuthMeta);
+  rpc Register(Credentials) returns (AuthMeta);
+  rpc GetSecretSyncMeta(google.protobuf.Empty) returns (GetSecretsSyncDataResponse);
+  rpc GetSecretSyncMetaByName(Name) returns (SecretSyncData);
+  rpc GetSecret(SecretID) returns (EncodedSecret);
+  rpc SaveEncodedSecret(EncodedSecret) returns (google.protobuf.Empty);
+  rpc DeleteSecret(SecretID) returns (google.protobuf.Empty);
+}
+
+message Credentials {
+  string login = 1;
+  string password = 2;
+}
+
+message Name {
+  string name = 1;
+}
+
+message AuthMeta {
+  User user = 1;
+  string token = 2;
+}
+
+message User {
+  int64 ID = 1;
+  string username = 2;
+  string passwordHash = 3;
+  int64 timestamp = 4;
+}
+
+message SecretSyncData {
+  string secretID = 1;
+  string hash = 2;
+  int64 timestamp = 3;
+}
+
+message GetSecretsSyncDataResponse {
+  repeated SecretSyncData items = 1;
+}
+
+enum SECRET_TYPE {
+  CREDENTIALS = 0;
+  TEXT = 1;
+  BINARY = 2;
+  CARD = 3;
+}
+
+message EncodedSecret {
+  string id = 1;
+  string name = 2;
+  int64 owner = 3;
+  string description = 4;
+  SECRET_TYPE type = 5;
+  bytes encData = 6;
+  string hash = 7;
+  int64 date_last_modified = 8;
+}
+
+message SecretID {
+  string secretID = 1;
+}
+
+
+enum EVENT_TYPE {
+  PASSWORD_CHANGE = 0;
+  SECRET_ADD = 1;
+  SECRET_DELETE = 2;
+  SECRET_UPDATE = 3;
+}
+
+message ChangeEvent {
+  EVENT_TYPE type = 1;
+  oneof payload {
+    EncodedSecret secretItem = 2;
+    int64 id = 3;
+    string string = 4;
+  }
+}
+
+
+
+
+
+
+
