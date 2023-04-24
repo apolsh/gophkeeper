@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/apolsh/yapr-gophkeeper/internal/backend/service"
-	"github.com/apolsh/yapr-gophkeeper/internal/backend/storage"
 	pb "github.com/apolsh/yapr-gophkeeper/internal/grpc/proto"
 	"github.com/apolsh/yapr-gophkeeper/internal/mocks"
 	"github.com/apolsh/yapr-gophkeeper/internal/model"
+	errs "github.com/apolsh/yapr-gophkeeper/internal/model/app_errors"
 	"github.com/apolsh/yapr-gophkeeper/internal/model/dto"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -101,23 +101,23 @@ func (s *GRPCServerSuite) TestRegisterSuccess() {
 }
 
 func (s *GRPCServerSuite) TestRegisterErrorLoginIsAlreadyUsed() {
-	s.service.EXPECT().Register(gomock.All(), userLogin, userPassword).Return("", model.User{}, storage.ErrorLoginIsAlreadyUsed)
+	s.service.EXPECT().Register(gomock.All(), userLogin, userPassword).Return("", model.User{}, errs.ErrorLoginIsAlreadyUsed)
 	_, err := s.client.Register(context.Background(), &pb.Credentials{Login: userLogin, Password: userPassword})
 	assert.NotNil(s.T(), err)
 	st, ok := status.FromError(err)
 	assert.True(s.T(), ok)
 	assert.Equal(s.T(), codes.AlreadyExists, st.Code())
-	assert.Equal(s.T(), storage.ErrorLoginIsAlreadyUsed.Error(), st.Message())
+	assert.Equal(s.T(), errs.ErrorLoginIsAlreadyUsed.Error(), st.Message())
 }
 
 func (s *GRPCServerSuite) TestRegisterErrorEmptyValue() {
-	s.service.EXPECT().Register(gomock.All(), userLogin, userPassword).Return("", model.User{}, service.ErrorEmptyValue)
+	s.service.EXPECT().Register(gomock.All(), userLogin, userPassword).Return("", model.User{}, errs.ErrorEmptyValue)
 	_, err := s.client.Register(context.Background(), &pb.Credentials{Login: userLogin, Password: userPassword})
 	assert.NotNil(s.T(), err)
 	st, ok := status.FromError(err)
 	assert.True(s.T(), ok)
 	assert.Equal(s.T(), codes.Unauthenticated, st.Code())
-	assert.Equal(s.T(), service.ErrorEmptyValue.Error(), st.Message())
+	assert.Equal(s.T(), errs.ErrorEmptyValue.Error(), st.Message())
 }
 
 func (s *GRPCServerSuite) TestLoginSuccess() {
@@ -134,13 +134,13 @@ func (s *GRPCServerSuite) TestLoginSuccess() {
 }
 
 func (s *GRPCServerSuite) TestLoginErrorEmptyValue() {
-	s.service.EXPECT().Login(gomock.All(), userLogin, userPassword).Return("", model.User{}, service.ErrorEmptyValue)
+	s.service.EXPECT().Login(gomock.All(), userLogin, userPassword).Return("", model.User{}, errs.ErrorEmptyValue)
 	_, err := s.client.Login(context.Background(), &pb.Credentials{Login: userLogin, Password: userPassword})
 	assert.NotNil(s.T(), err)
 	st, ok := status.FromError(err)
 	assert.True(s.T(), ok)
 	assert.Equal(s.T(), codes.Unauthenticated, st.Code())
-	assert.Equal(s.T(), service.ErrorEmptyValue.Error(), st.Message())
+	assert.Equal(s.T(), errs.ErrorEmptyValue.Error(), st.Message())
 }
 
 func (s *GRPCServerSuite) TestGetSecretSyncMetaSuccess() {
